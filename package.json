@@ -12,8 +12,11 @@
     "vite": "^4.4.9"
   },
   "dependencies": {
+    "@petamoriken/float16": "^3.8.3",
     "cbor": "^9.0.1",
+    "cbor-js": "^0.1.0",
     "cbor-web": "^9.0.1",
+    "cbor-x": "^1.5.4",
     "pako": "^2.1.0",
     "three": "^0.156.0"
   }
