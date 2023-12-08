@@ -28,7 +28,7 @@ export default class QFFViewer extends HTMLElement{
         this.style.height = `${this.height}px`;
         this.renderer.setPixelRatio(1);
         // this.renderer.setSize(this.width, this.height, false);
-        this.renderer.setSize(400, 400, false);
+        this.renderer.setSize(800, 800, false);
         this.renderer.domElement.style.width = `100%`;
         this.renderer.domElement.style.height = `100%`;
         this.appendChild(this.renderer.domElement);
