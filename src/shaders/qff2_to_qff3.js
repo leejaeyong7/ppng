@@ -30,21 +30,22 @@ void main() {
     int yi = ((voxelFlatIndex / (Q)) % Q);
     int zi = ((voxelFlatIndex / (Q*Q)) % Q);
     int fi = ((voxelFlatIndex / (Q*Q*Q)) % (F*2));
+
     // Fx2*QxQxRxC
     outColor = vec4(0.0, 0.0, 0.0, 0.0);
     for(int r = 0; r < R; r++){
-        int qyz_y = fi * Q + yi;
-        int qyz_z = zi * R + r;
+        int qyz_z = fi * Q + zi;
+        int qyz_y = yi * R + r;
 
-        int qxz_x = fi * Q + xi;
-        int qxz_z = zi * R + r;
+        int qxz_z = fi * Q + zi;
+        int qxz_x = xi * R + r;
 
-        int qxy_x = fi * Q + xi;
-        int qxy_y = yi * R + r;
+        int qxy_y = fi * Q + yi;
+        int qxy_x = xi * R + r;
 
-        vec4 qxv = texelFetch(qff1x, ivec2(qyz_z, qyz_y), 0);
-        vec4 qyv = texelFetch(qff1y, ivec2(qxz_z, qxz_x), 0);
-        vec4 qzv = texelFetch(qff1z, ivec2(qxy_y, qxy_x), 0);
+        vec4 qxv = texelFetch(qff1x, ivec2(qyz_y, qyz_z), 0);
+        vec4 qyv = texelFetch(qff1y, ivec2(qxz_x, qxz_z), 0);
+        vec4 qzv = texelFetch(qff1z, ivec2(qxy_x, qxy_y), 0);
 
         outColor += (qxv * qyv * qzv);
     }

@@ -7,13 +7,15 @@ precision highp sampler3D;
 uniform int Q;
 uniform int G;
 uniform int F;
-
+uniform int D;
+uniform int M;
+uniform float mipscale;
 
 // indexing parameters
 uniform int voxelSize;
 
+uniform sampler3D prev_grid;
 uniform sampler3D[8] qff_textures;
-uniform float density_bias;
 
 uniform vec4[8] density_vectors;
 uniform float[4] freqs;
@@ -65,7 +67,7 @@ float query(vec3 p) {
 
 
     // obtain density features
-    float density = min(density_layer(feats) + density_bias, 11.0);
+    float density = min(density_layer(feats), 11.0);
     return exp(density);
 }
 
@@ -80,33 +82,146 @@ void main() {
     int xi = (voxelFlatIndex % G);
     int yi = (voxelFlatIndex / (G) % G);
     int zi = (voxelFlatIndex / (G*G) % G);
+    int mi = (voxelFlatIndex / (G*G*G));
 
-    // within 0 to 1 range
+    float scale = pow(mipscale, float(mi));
     vec3 p = vec3(float(xi), float(yi), float(zi)) / float(G - 1);
+    vec3 cp = ((p - 0.5) / scale) + 0.5;
 
-    // within -1 to 1 range
-    // p = (p - 0.5) * 2.0;
-    float density = query(p);
+    float density = query(cp);
+    outColor.r = density;
+    return;
+}
+`;
+const sumShader = `#version 300 es
+precision highp float;
+precision highp sampler3D;
 
-    float alpha = 1.0 - exp(-density * 1.7 / 1024.0 );
-    outColor.r = alpha;
+// QFF size parameters
+uniform int G;
+uniform int M;
+uniform float mipscale;
+
+// indexing parameters
+uniform int voxelSize;
+
+uniform sampler3D[16] grids;
+const int canvasMaxWidth = 16384;
+
+// output (4 channel bytes, but only use 1)
+out vec4 outColor;
+
+vec4 z = vec4(0.0, 0.0, 0.0, 0.0);
+
+void main() {
+    // indexing GxGxG
+    int voxelFlatIndex = int(gl_FragCoord.y) * canvasMaxWidth + int(gl_FragCoord.x);
+    if (voxelFlatIndex > voxelSize) {
+        discard;
+    }
+    // given grids of mip levels 0 to 4, compute the maximum density at the mip level of 0. 
+    // i.e, if the coarse density is a maximum of all finer densities. 
+    int xi = (voxelFlatIndex % G);
+    int yi = (voxelFlatIndex / (G) % G);
+    int zi = (voxelFlatIndex / (G*G) % G);
+
+    // get the query point
+    vec3 p = vec3(float(xi), float(yi), float(zi)) / float(G - 1);
+    vec3 cp = abs(p - 0.5) * 2.0; 
+    float mp = max(max(cp.x, cp.y), cp.z);
+    int mip = max(min(int(-log(mp) / log(mipscale)), M - 1), 0);
+
+    float density = 0.0;
+    for (int mi = 0; mi < M; mi++){
+      if(mi > mip){
+        break;
+      }
+
+      float scale = pow(mipscale, float(mi));
+      vec3 sp = ((p - 0.5) / scale) + 0.5;
+      switch(mi){
+        case 0:
+          density = max(texture(grids[0], sp).r, density);
+          break;
+        case 1:
+          density = max(texture(grids[1], sp).r, density);
+          break;
+        case 2:
+          density = max(texture(grids[2], sp).r, density);
+          break;
+        case 3:
+          density = max(texture(grids[3], sp).r, density);
+          break;
+        case 4:
+          density = max(texture(grids[4], sp).r, density);
+          break;
+        case 5:
+          density = max(texture(grids[5], sp).r, density);
+          break;
+        case 6:
+          density = max(texture(grids[6], sp).r, density);
+          break;
+        case 7:
+          density = max(texture(grids[7], sp).r, density);
+          break;
+        case 8:
+          density = max(texture(grids[8], sp).r, density);
+          break;
+        case 9:
+          density = max(texture(grids[9], sp).r, density);
+          break;
+        case 10:
+          density = max(texture(grids[10], sp).r, density);
+          break;
+        case 11:
+          density = max(texture(grids[11], sp).r, density);
+          break;
+        case 12:
+          density = max(texture(grids[12], sp).r, density);
+          break;
+        case 13:
+          density = max(texture(grids[13], sp).r, density);
+          break;
+        case 14:
+          density = max(texture(grids[14], sp).r, density);
+          break;
+        case 15:
+          density = max(texture(grids[15], sp).r, density);
+          break;
+      }
+    }
+
+    outColor.r = density;
+    return;
 }
 `;
 
-export function gridFromqff3(F, Q, G, qff3, density_vectors, density_bias, freqs){
-  const voxelSize = G*G*G;
+export function gridFromqff3(F, Q, G, qff3, density_vectors, freqs, num_mips=1){
+  const gridsVoxelSize = num_mips * G*G*G;
+  const gridVoxelSize = G*G*G;
   const outType = 'float16';
-  console.log(freqs)
-  const uniforms = {
+  const mip_scale = 2.00;
+  const gridsUniforms = {
     'Q': {type: 'int', value: Q},
     'G': {type: 'int', value: G},
     'F': {type: 'int', value: F},
+    'M': {type: 'int', value: num_mips},
+    'mipscale': {type: 'float', value: mip_scale},
     'freqs': {type: 'floatArray', value: freqs},
-    'voxelSize': {type: 'int', value: voxelSize},
+    'voxelSize': {type: 'int', value: gridsVoxelSize},
     'qff_textures': {type: 'sampler3DArray', value: qff3, options: {width: Q, height: Q, depth: Q, sampling:'linear'}},
-    'density_vectors': {type: 'vec4Array', value: density_vectors},
-    'density_bias': {type: 'float', value: density_bias}
+    'density_vectors': {type: 'vec4Array', value: density_vectors}
   };
-  const grid = gpgpu(voxelSize, outType, uniforms, gridShader, 1)
+  const grids = gpgpu(gridsVoxelSize, outType, gridsUniforms, gridShader, 4)
+  const grid_samplers = Array.from({length:num_mips}, (v, i)=>grids.slice(i * gridVoxelSize * 4, (i+1) * gridVoxelSize * 4));
+
+  const gridUniforms = {
+    'G': {type: 'int', value: G},
+    'M': {type: 'int', value: num_mips},
+    'mipscale': {type: 'float', value: mip_scale},
+    'voxelSize': {type: 'int', value: gridVoxelSize},
+    'grids': {type: 'sampler3DArray', value: grid_samplers, options: {width: G, height: G, depth: G, sampling:'nearest'}},
+  };
+  const grid = gpgpu(gridVoxelSize, outType, gridUniforms, sumShader, 1)
   return grid;
 }

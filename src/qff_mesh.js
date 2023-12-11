@@ -3,7 +3,7 @@ import {qffVertShader, qffFragShader} from './shaders/qff_shaders.js';
 
 
 export default class QFFMesh extends THREE.Object3D{
-    constructor(F, Q, G, freqs, qff_textures_data, grid_texture_data, density_layer_data, rgb_layer_0_data, rgb_layer_1_data, density_bias, min_alpha, render_step){
+    constructor(F, Q, G, freqs, qff_textures_data, grid_texture_data, density_layer_data, rgb_layers_data, grid_th, min_alpha, render_step){
         super();
         const qff_textures = qff_textures_data.map(qff_texture_data =>{
             const qff_texture = new THREE.Data3DTexture(qff_texture_data, Q, Q, Q);
@@ -24,27 +24,24 @@ export default class QFFMesh extends THREE.Object3D{
         const density_layer = density_layer_data.map(arr =>{
             return new THREE.Matrix4().fromArray(arr).transpose();
         });
-        const rgb_layer_0 = rgb_layer_0_data.map(arr =>{
+        const rgb_layers = rgb_layers_data.map(rgb_data=>rgb_data.map(arr =>{
             return new THREE.Matrix4().fromArray(arr).transpose();
-        });
-        const rgb_layer_1 = rgb_layer_1_data.map(arr =>{
-            return new THREE.Matrix4().fromArray(arr).transpose();
-        });
+        }));
 
         const uniforms = {
             'num_freqs': {value: F},
             'num_quants': {value: Q},
             'qff_textures': {value: qff_textures},
             'grid_texture': {value: grid_texture},
-            'density_bias': {value: density_bias},
+            'grid_res': {value: G},
+            'grid_th': {value: grid_th},
             'density_weight_0': {value: density_layer},
-            'rgb_weight_0': {value: rgb_layer_0},
-            'rgb_weight_1': {value: rgb_layer_1},
+            'rgb_weight_0': {value: rgb_layers[0]},
+            'rgb_weight_1': {value: rgb_layers[1]},
             'min_alpha': {value: min_alpha},
             'render_step': {value: render_step},
             'freqs': {value:freqs},
         }
-        console.log(uniforms)
 
         const geom = new THREE.BoxGeometry(1, 1, 1);
         const material = new THREE.ShaderMaterial({

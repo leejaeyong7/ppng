@@ -24,21 +24,21 @@ uniform mat4 projectionMatrix;
 uniform sampler3D grid_texture;
 
 uniform sampler3D[8] qff_textures;
-uniform float density_bias;
+uniform float grid_th;
 
 uniform mat4[32] density_weight_0;
 uniform mat4[32] rgb_weight_0;
 uniform mat4[4] rgb_weight_1;
 
-
 uniform float[4] freqs;
 
 uniform int num_freqs;
 uniform int num_quants;
+uniform int grid_res;
 uniform float render_step;
 uniform float min_alpha;
 
-const int MAX_ITERS = 4096;
+const int MAX_ITERS = 128;
 const int MAX_NUM_FREQS = 4;
 const float TWO_PI = 6.28318530718;
 
@@ -81,22 +81,22 @@ vec4[4] density_layer_0(vec4[8] qff_values){
     return out_vecs;
 }
 
-vec4[4] rgb_layer_0(vec4[8] color_input){
+vec4[4] rgb_layer_0(vec4[4] color_input){
     vec4[4] out_vecs = vec4[4] (z, z, z, z);
 
     for (int oid = 0; oid < 4; oid++){
-        for( int iid = 0; iid < 8; iid++){
+        for( int iid = 0; iid < 4; iid++){
             out_vecs[oid] += rgb_weight_0[iid * 4 + oid] * color_input[iid];
         }
-    }
-    // relu
-    for (int oid = 0; oid < 4; oid++){
-        out_vecs[oid] = max(out_vecs[oid], 0.0);
     }
     return out_vecs;
 }
 
-vec3 rgb_layer_1(vec4[4] color_val){
+vec3 rgb_layer_1(vec4[4] color_val, vec4[4] sh_feats){
+    // relu
+    for (int oid = 0; oid < 4; oid++){
+        color_val[oid] = max(color_val[oid] + sh_feats[oid], 0.0);
+    }
     vec4 out_vec = vec4(0.0, 0.0, 0.0, 0.0);
 
     for (int iid = 0; iid < 4; iid++){
@@ -116,21 +116,31 @@ vec4[4] compute_sh_feats(vec3 dir){
     float dy = dir.y;
     float dz = dir.z;
 
+    vec4[4] shf = vec4[4](z, z, z, z);
     vec4[4] ret = vec4[4](z, z, z, z);
     vec4 d0v = vec4(1.0, -S3, S3, -S3) * ITSPI;
     vec4 d1v = vec4(S15, -S15, S5  / 2.0, -S15) * ITSPI;
     vec4 d2v = vec4(S15 / 2.0, S70/ 4.0, S105, S42 / 4.0) * ITSPI;
     vec4 d3v = vec4(S7 / 2.0, S42 / 4.0, S105 / 2.0, S70 / 4.0) * ITSPI;
 
-    ret[0] = d0v * vec4(1.0, dir.yzx);
-    ret[1] = d1v * vec4(xy, yz, 3.0 * zz - 1.0, zx);
-    ret[2] = d2v * vec4(xx - yy, dy * (-3.0 * xx + yy), xy * dz, dy * (1.0 - 5.0 * zz));
-    ret[3] = d3v * vec4(dz * (5.0 * zz - 3.0), dx * (1.0 - 5.0 * zz), dz * (xx - yy), dx * (-xx + 3.0*yy));
+    shf[0] = d0v * vec4(1.0, dir.yzx);
+    shf[1] = d1v * vec4(xy, yz, 3.0 * zz - 1.0, zx);
+    shf[2] = d2v * vec4(xx - yy, dy * (-3.0 * xx + yy), xy * dz, dy * (1.0 - 5.0 * zz));
+    shf[3] = d3v * vec4(dz * (5.0 * zz - 3.0), dx * (1.0 - 5.0 * zz), dz * (xx - yy), dx * (-xx + 3.0*yy));
+
+    // apply first MLP layer for precomputing SH features
+    for (int oid = 0; oid < 4; oid++){
+        for( int iid = 0; iid < 4; iid++){
+            ret[oid] += rgb_weight_0[(iid + 4) * 4 + oid] * shf[iid];
+        }
+    }
     return ret;
 }
 
 float sample_grid( vec3 p ) {
-    return texture( grid_texture, p ).r;
+    // return texture(grid_texture , p * float(grid_res - 1) / float(grid_res)).r;
+    return texture(grid_texture , p).r;
+    // return texelFetch(grid_texture, ivec3(round(p * float(grid_res - 1))), 0).r;
 }
 vec3 sigmoid(vec3 v){
     return 1.0 / (1.0 + exp(-v));
@@ -168,29 +178,22 @@ vec4 query( vec3 p, vec3 dir, float t, vec4[4] sh_feats, float dt) {
     // obtain density features
     vec4[4] density_feats_0 = density_layer_0(feats);
 
-    float density = min(density_feats_0[0].r + density_bias,11.0);
+    float density = min(density_feats_0[0].r,11.0);
     density = exp(density);
     float alpha = 1.0 - exp(-density * dt);
-    if (alpha < 0.01){
-        return vec4(0.0, 0.0, 0.0, alpha);
-    }
 
     // at this point, we have high alpha
     // if we want to just render depth, return early
 
     // 
-    vec4[8] color_input = vec4[8](
+    vec4[4] color_input = vec4[4](
         density_feats_0[0], 
         density_feats_0[1], 
         density_feats_0[2], 
-        density_feats_0[3], 
-        sh_feats[0],
-        sh_feats[1],
-        sh_feats[2],
-        sh_feats[3]
+        density_feats_0[3]
     );
     vec4[4] rgb_feats_0 = rgb_layer_0(color_input);
-    vec3 rgb = rgb_layer_1(rgb_feats_0);
+    vec3 rgb = rgb_layer_1(rgb_feats_0, sh_feats);
 
     rgb = sigmoid(rgb);
 
@@ -209,7 +212,8 @@ void main(){
     vec3 p = vOrigin + bounds.x * rayDir;
     vec3 inc = 1.0 / abs( rayDir );
 
-    float grid_step_size = render_step;
+    float grid_step_size = render_step * 4.0;
+    float non_grid_step_size = render_step;
 
     vec3 rgb = vec3(0.0, 0.0, 0.0);
     float acc_trans = 1.0;
@@ -218,21 +222,17 @@ void main(){
     while(t < bounds.y && iter_count < MAX_ITERS){
         p = vOrigin + rayDir * t;
         float grid = sample_grid(p);
-
-        if (grid < min_alpha){
+        if (grid < grid_th){
             t = t + grid_step_size;
-            iter_count += 1;
             continue;
+        // } else {
+        //     gl_FragColor = vec4(0.0, t, 0.0, 1.0);
+        //     return;
         }
         
         // at this point, we have hit something in grid.
         vec4 rgba = query(p, rayDir, t, sh_feats, grid_step_size);
         float alpha = rgba.a;
-        if (alpha < 0.01){
-            t = t + grid_step_size;
-            iter_count += 1;
-            continue;
-        }
         float weight = alpha * acc_trans;
         rgb += weight * rgba.rgb;
         acc_trans *= (1.0 - alpha);
@@ -240,12 +240,10 @@ void main(){
         if (acc_trans < 0.01) {
             break;
         }
-        t = t + grid_step_size;
+        t = t + non_grid_step_size;
         iter_count += 1;
     }
-    if (acc_trans > 0.97){
-        discard;
-    }
-    gl_FragColor = vec4(rgb, 1.0);
+
+    gl_FragColor = vec4(rgb, 1.0 - acc_trans);
 }
 `

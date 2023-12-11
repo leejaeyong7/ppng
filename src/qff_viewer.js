@@ -1,12 +1,36 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {qff1Toqff3} from './shaders/qff1_to_qff3.js';
+import {qff2Toqff3} from './shaders/qff2_to_qff3.js';
 import {gridFromqff3} from './shaders/grid_from_qff3.js';
 import QFFMesh from './qff_mesh.js';
 import * as cbor from 'cbor-web';
-import { Float16Array, getFloat16 } from '@petamoriken/float16';
+import { Float16Array, getFloat16, setFloat16 } from '@petamoriken/float16';
 
 // ES Modules
+function gridFromRLE(G, rle, val){
+    // setup default value in uint16
+    const buffer = new ArrayBuffer(4);
+    const view = new DataView(buffer);
+    setFloat16(view, 0, val * 100);
+    setFloat16(view, 1, 0.0);
+    const val16 = view.getUint16(0);
+    const unval16 = view.getUint16(1);
+
+    // assign values using RLE
+    const grid = new Uint16Array(G*G*G);
+    let idx = 0;
+    let parity = false;
+    rle.forEach(count=>{
+        const v = parity ? val16 : unval16; 
+        for(let i=0; i<count; i++){
+            grid[idx] = v;
+            idx++;
+        }
+        parity = !parity;
+    })
+    return grid;
+}
 
 
 export default class QFFViewer extends HTMLElement{
@@ -26,9 +50,11 @@ export default class QFFViewer extends HTMLElement{
         this.renderer = new THREE.WebGLRenderer( { antialias: false} );
         this.style.width = `${this.width}px`;
         this.style.height = `${this.height}px`;
+        // this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setPixelRatio(1);
-        // this.renderer.setSize(this.width, this.height, false);
-        this.renderer.setSize(800, 800, false);
+        const render_width = Math.max(Math.min(this.width, 800), 100);
+        const render_height = Math.max(Math.min(this.height, 800), 100);
+        this.renderer.setSize(render_width, render_height, false);
         this.renderer.domElement.style.width = `100%`;
         this.renderer.domElement.style.height = `100%`;
         this.appendChild(this.renderer.domElement);
@@ -37,7 +63,7 @@ export default class QFFViewer extends HTMLElement{
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.addEventListener('change', function(event){ self.should_render = true; })
         this.controls.update();
-
+        this.renderer.setClearColor(0x000000, 0);
 
         // setup scene
         this.scene = new THREE.Scene();
@@ -45,7 +71,6 @@ export default class QFFViewer extends HTMLElement{
             requestAnimationFrame(animate);
             self.controls.update()
             if(self.should_render){
-                console.log('rendered')
                 self.renderer.render(self.scene, self.camera);
                 self.should_render = false;
             }
@@ -55,18 +80,16 @@ export default class QFFViewer extends HTMLElement{
         this.loadPromise = fetch(src);
         this.loadPromise.then(async (response) => {
             const buf = await response.arrayBuffer();
-            console.time('extracting')
             const qffMesh = await this.onBufferLoad(buf);
             this.scene.add(qffMesh)
             this.should_render = true;
-            console.timeEnd('extracting')
         }).catch((error) => {
             console.error(error)
         });
     }
 
 
-    load_pose(pose) {
+    load_pose(pose, up) {
         const pose_mat = new THREE.Matrix4().set(
             pose[0][0],-pose[0][1],-pose[0][2], pose[0][3],
             pose[1][0],-pose[1][1],-pose[1][2], pose[1][3],
@@ -77,13 +100,14 @@ export default class QFFViewer extends HTMLElement{
         const cam_rot = new THREE.Quaternion();
         const cam_s = new THREE.Vector3();
         pose_mat.decompose(cam_pos, cam_rot, cam_s)
-        let up = new THREE.Vector3(-pose[0][1], -pose[1][1], -pose[2][1]);
-
-        this.camera.setRotationFromQuaternion(cam_rot);
-        this.camera.position.copy(cam_pos);
-        this.camera.updateMatrix()
-        this.camera.up.copy(up);
-
+        // let up = new THREE.Vector3(-pose[0][1], -pose[1][1], -pose[2][1]);
+        let upv = new THREE.Vector3(up[0], up[1], up[2]);
+        //
+        // this.camera.setRotationFromQuaternion(cam_rot);
+        // this.camera.position.copy(cam_pos);
+        // this.camera.updateMatrix()
+        // this.camera.up.copy(up);
+        //
 
         let front = new THREE.Vector3(0.5, 0.5, 0.5);
         // let front = new THREE.Vector3(-pose[0][2], -pose[1][2], -pose[2][2]);
@@ -102,7 +126,7 @@ export default class QFFViewer extends HTMLElement{
         this.camera.setRotationFromQuaternion(cam_rot);
         this.camera.position.copy(cam_pos);
         this.camera.updateMatrix()
-        this.camera.up.copy(up);
+        this.camera.up.copy(upv);
         this.controls.target.set(front.x, front.y, front.z);
         this.controls.target0.set(front.x, front.y, front.z);
     }
@@ -116,46 +140,87 @@ export default class QFFViewer extends HTMLElement{
             byteBuf.set(buf);
             return arrBuf;
         }
-        console.time('decoding')
         const data = await cbor.decodeFirst(buffer);
         const qff_buffer= new Uint16Array(loadCBORBuffer(data['qff_buffer']))
         const freqs = data['freqs'];
         const F = data['n_freqs'];
+        // const G = 256;//data['grid_res'];
         const G = data['grid_res'];
         const C = data['n_feats'];
         const Q = data['n_quants'];
         const R = data['rank'];
-        const density_bias = data['density_bias'];
+        const qff_type = data['qff_type']
+        const has_rle = data.hasOwnProperty('grid_rle')
+        // const grid_th= data['grid_thres'];
+
         const render_step = data['render_step'];
+        console.log(render_step);
+        // 1 - e^(-(e^grid_th * render_step) > 0.01
+        // 1 - e^(-(e^grid_th * render_step) < 0.01
+        // 1 - 0.01 < e^(-(e^grid_th * render_step)
+        // -log(0.99) > e^grid_th * render_step)
+
+        // e^grid_th > -log(0.01) / render_step
+        // grid_th > -log(0.01) / render_step
+        console.log(render_step)
+        const grid_th = -Math.log(1 - 0.01) / render_step;
         const up = data['up'];
-        const initial_pose = data['initial_pose'];
-        const qff_density_raw_layer = new Float32Array(loadCBORBuffer(data['qff_density_layer']));
-        const qff_density_raw_vectors = new Float32Array(loadCBORBuffer(data['qff_density_vectors']));
-        const qff_rgb_raw_layer_0 = new Float32Array(loadCBORBuffer(data['qff_rgb_layer_0']));
-        const qff_rgb_raw_layer_1 = new Float32Array(loadCBORBuffer(data['qff_rgb_layer_1']));
-        const qff_1_chunk_size = F*2*Q*R*C;
-        const qff_x = qff_buffer.slice(0*qff_1_chunk_size, 1*qff_1_chunk_size)
-        const qff_y = qff_buffer.slice(1*qff_1_chunk_size, 2*qff_1_chunk_size)
-        const qff_z = qff_buffer.slice(2*qff_1_chunk_size, 3*qff_1_chunk_size)
+        const initial_pose = data['poses'][0];
 
-        console.timeEnd('decoding')
-        console.time('decompression')
-        const qff3_buffer = qff1Toqff3(F, Q, R, [qff_x, qff_y, qff_z]);
-        console.timeEnd('decompression')
+        // load MLP weights
+        const density_channels = data['n_density_layers'];
+        if(density_channels.length > 1){
+          console.error('Only one density layer is supported');
+          return;
+        }
+        const color_channels = data['n_color_layers'];
+        const qff_raw_density_layer = new Float32Array(loadCBORBuffer(data[`qff_density_layer_0`]));
+        const qff_raw_color_layers = Array.from({length: color_channels.length}, (v, i) => new Float32Array(loadCBORBuffer(data[`qff_color_layer_${i}`])));
+        const qff_density_layer = Array.from({length: qff_raw_density_layer.length / 16}, (v, i) => qff_raw_density_layer.slice(i*16, (i+1)*16));
+        const qff_color_layers = qff_raw_color_layers.map(qff_raw_color_layer=>Array.from({length: qff_raw_color_layer.length / 16}, (v, i) => qff_raw_color_layer.slice(i*16, (i+1)*16)));
+
+        let qff3_buffer = null;
+        switch(qff_type){
+          case 1:
+            const qff_1_chunk_size = F*2*Q*R*C;
+            const qff_x = qff_buffer.slice(0*qff_1_chunk_size, 1*qff_1_chunk_size)
+            const qff_y = qff_buffer.slice(1*qff_1_chunk_size, 2*qff_1_chunk_size)
+            const qff_z = qff_buffer.slice(2*qff_1_chunk_size, 3*qff_1_chunk_size)
+
+            // decompress to qff3
+            qff3_buffer = qff1Toqff3(F, Q, R, [qff_x, qff_y, qff_z]);
+          break;
+          case 2:
+            const qff_2_chunk_size = F*2*Q*Q*R*C;
+            const qff_yz = qff_buffer.slice(0*qff_2_chunk_size, 1*qff_2_chunk_size)
+            const qff_xz = qff_buffer.slice(1*qff_2_chunk_size, 2*qff_2_chunk_size)
+            const qff_xy = qff_buffer.slice(2*qff_2_chunk_size, 3*qff_2_chunk_size)
+
+            // decompress to qff3
+            qff3_buffer = qff2Toqff3(F, Q, R, [qff_yz, qff_xz, qff_xy]);
+            break;
+          case 3:
+            qff3_buffer = qff_buffer;
+            break;
+
+        }
         const qff3_buffers = Array.from({length: F*2}, (v, i) => qff3_buffer.slice(i*Q*Q*Q*4, (i+1)*Q*Q*Q*4));  
-        const qff_density_vectors = Array.from({length: qff_density_raw_vectors.length / 4}, (v, i) => qff_density_raw_vectors.slice(i*4, (i+1)*4));
-        console.time('gridCache')
-        const grid = gridFromqff3(F, Q, G, qff3_buffers, qff_density_vectors, density_bias, freqs);
-        console.timeEnd('gridCache')
-        this.load_pose(initial_pose);
-
-        const qff_density_layer = Array.from({length: qff_density_raw_layer.length / 16}, (v, i) => qff_density_raw_layer.slice(i*16, (i+1)*16));
-        const qff_rgb_layer_0 = Array.from({length: qff_rgb_raw_layer_0.length / 16}, (v, i) => qff_rgb_raw_layer_0.slice(i*16, (i+1)*16));
-        const qff_rgb_layer_1 = Array.from({length: qff_rgb_raw_layer_1.length / 16}, (v, i) => qff_rgb_raw_layer_1.slice(i*16, (i+1)*16));
-        // debugger;
+        let grid = null;
+        // if(has_rle && false){
+        const rle = data['grid_rle']
+        grid = gridFromRLE(G, rle, grid_th + 1)
+        // if(has_rle){
+        //     console.log('using rle')
+        //     const rle = data['grid_rle']
+        //     grid = gridFromRLE(G, rle, grid_th + 1)
+        // } else {
+        //     const qff_density_vectors = Array.from({length: qff_density_layer.length / 4}, (v, i) => qff_density_layer[i*4].slice(0, 4));
+        //     grid = gridFromqff3(F, Q, G, qff3_buffers, qff_density_vectors, freqs);
+        // }
+        this.load_pose(initial_pose, up);
 
         // setup QFF mesh
-        return new QFFMesh(F, Q, G, freqs, qff3_buffers, grid, qff_density_layer, qff_rgb_layer_0, qff_rgb_layer_1, density_bias, 0.01, render_step);
+        return new QFFMesh(F, Q, G, freqs, qff3_buffers, grid, qff_density_layer, qff_color_layers, grid_th, 0.01, render_step);
     }
 
     set height(val){
