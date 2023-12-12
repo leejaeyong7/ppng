@@ -39,7 +39,7 @@ export default class QFFViewer extends HTMLElement{
         this.should_render = true;
         // setup camera
         this.fov = 45;
-        this.aspect = 4.0 / 4.0;
+        this.aspect = this.width / this.height;
         this.near = 0.01;
         this.far = 5;
 
@@ -48,12 +48,25 @@ export default class QFFViewer extends HTMLElement{
         // 
         const self = this;
         this.renderer = new THREE.WebGLRenderer( { antialias: false} );
-        this.style.width = `${this.width}px`;
-        this.style.height = `${this.height}px`;
+        if(this.style.width == ''){
+            this.style.width = `${this.width}px`;
+        }
+        if(this.style.height == ''){
+            this.style.height = `${this.height}px`;
+        }
         // this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setPixelRatio(1);
-        const render_width = Math.max(Math.min(this.width, 800), 100);
-        const render_height = Math.max(Math.min(this.height, 800), 100);
+        const render_aspect = this.width / this.height;
+        const render_max = Math.max(this.width, this.height);
+        const screen_max = 800;
+        let render_width = null;
+        if(render_aspect > 1){
+            render_width = Math.min(render_max, screen_max);
+            render_height = render_width / render_aspect;
+        } else {
+            render_height = Math.min(render_max, screen_max);
+            render_width = render_height * render_aspect;
+        }
         this.renderer.setSize(render_width, render_height, false);
         this.renderer.domElement.style.width = `100%`;
         this.renderer.domElement.style.height = `100%`;
@@ -89,31 +102,23 @@ export default class QFFViewer extends HTMLElement{
     }
 
 
-    load_pose(pose, up) {
+    load_pose(pose, up, aabb_scale) {
+        const scale_pose_val = (v=>(v - 0.5) / aabb_scale + 0.5)
         const pose_mat = new THREE.Matrix4().set(
-            pose[0][0],-pose[0][1],-pose[0][2], pose[0][3],
-            pose[1][0],-pose[1][1],-pose[1][2], pose[1][3],
-            pose[2][0],-pose[2][1],-pose[2][2], pose[2][3],
+            pose[0][0],-pose[0][1],-pose[0][2], scale_pose_val(pose[0][3]),
+            pose[1][0],-pose[1][1],-pose[1][2], scale_pose_val(pose[1][3]),
+            pose[2][0],-pose[2][1],-pose[2][2], scale_pose_val(pose[2][3]),
             0, 0, 0, 1
         );
         const cam_pos = new THREE.Vector3();
         const cam_rot = new THREE.Quaternion();
         const cam_s = new THREE.Vector3();
         pose_mat.decompose(cam_pos, cam_rot, cam_s)
-        // let up = new THREE.Vector3(-pose[0][1], -pose[1][1], -pose[2][1]);
         let upv = new THREE.Vector3(up[0], up[1], up[2]);
-        //
-        // this.camera.setRotationFromQuaternion(cam_rot);
-        // this.camera.position.copy(cam_pos);
-        // this.camera.updateMatrix()
-        // this.camera.up.copy(up);
-        //
+
 
         let front = new THREE.Vector3(0.5, 0.5, 0.5);
-        // let front = new THREE.Vector3(-pose[0][2], -pose[1][2], -pose[2][2]);
-        // this.camera.getWorldDirection(front);
 
-        // front = front.multiplyScalar(0.01).add(cam_pos);
         // remove old control object
         if (this.controls){
             this.controls.dispose();
@@ -150,19 +155,7 @@ export default class QFFViewer extends HTMLElement{
         const Q = data['n_quants'];
         const R = data['rank'];
         const qff_type = data['qff_type']
-        const has_rle = data.hasOwnProperty('grid_rle')
-        // const grid_th= data['grid_thres'];
-
         const render_step = data['render_step'];
-        console.log(render_step);
-        // 1 - e^(-(e^grid_th * render_step) > 0.01
-        // 1 - e^(-(e^grid_th * render_step) < 0.01
-        // 1 - 0.01 < e^(-(e^grid_th * render_step)
-        // -log(0.99) > e^grid_th * render_step)
-
-        // e^grid_th > -log(0.01) / render_step
-        // grid_th > -log(0.01) / render_step
-        console.log(render_step)
         const grid_th = -Math.log(1 - 0.01) / render_step;
         const up = data['up'];
         const initial_pose = data['poses'][0];
@@ -205,22 +198,18 @@ export default class QFFViewer extends HTMLElement{
 
         }
         const qff3_buffers = Array.from({length: F*2}, (v, i) => qff3_buffer.slice(i*Q*Q*Q*4, (i+1)*Q*Q*Q*4));  
-        let grid = null;
         // if(has_rle && false){
-        const rle = data['grid_rle']
-        grid = gridFromRLE(G, rle, grid_th + 1)
-        // if(has_rle){
-        //     console.log('using rle')
-        //     const rle = data['grid_rle']
-        //     grid = gridFromRLE(G, rle, grid_th + 1)
-        // } else {
-        //     const qff_density_vectors = Array.from({length: qff_density_layer.length / 4}, (v, i) => qff_density_layer[i*4].slice(0, 4));
-        //     grid = gridFromqff3(F, Q, G, qff3_buffers, qff_density_vectors, freqs);
-        // }
-        this.load_pose(initial_pose, up);
+        const rles = data['grid_rles']
+        const mips = rles.length;
+        const aabb_scale = Math.pow(2, mips - 1);
+        const grids = rles.map((rle, i)=>{
+            return gridFromRLE(G, rle, grid_th + 1)
+        });
+        console.log(aabb_scale)
+        this.load_pose(initial_pose, up, aabb_scale);
 
         // setup QFF mesh
-        return new QFFMesh(F, Q, G, freqs, qff3_buffers, grid, qff_density_layer, qff_color_layers, grid_th, 0.01, render_step);
+        return new QFFMesh(F, Q, G, freqs, qff3_buffers, grids, qff_density_layer, qff_color_layers, grid_th, aabb_scale, 0.01, render_step);
     }
 
     set height(val){

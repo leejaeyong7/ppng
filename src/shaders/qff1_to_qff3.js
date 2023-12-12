@@ -32,7 +32,7 @@ void main() {
     int fi = ((voxelFlatIndex / (Q*Q*Q)) % (F*2));
     // Fx2*QxRxC
     outColor = vec4(0.0, 0.0, 0.0, 0.0);
-    for(int r = 0; r < 8; r++){
+    for(int r = 0; r < R; r++){
         int qxi = fi * Q*R + xi * R + r;
         int qyi = fi * Q*R + yi * R + r;
         int qzi = fi * Q*R + zi * R + r;

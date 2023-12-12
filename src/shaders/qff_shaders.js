@@ -21,10 +21,11 @@ precision highp sampler2D;
 uniform mat4 modelViewMatrix;
 uniform mat4 projectionMatrix;
 
-uniform sampler3D grid_texture;
+uniform sampler3D[5] grid_textures;
 
 uniform sampler3D[8] qff_textures;
 uniform float grid_th;
+uniform int grid_mips;
 
 uniform mat4[32] density_weight_0;
 uniform mat4[32] rgb_weight_0;
@@ -136,11 +137,28 @@ vec4[4] compute_sh_feats(vec3 dir){
     }
     return ret;
 }
+int mip_from_pos(vec3 p){
+    vec3 np = p - 0.5;
+    vec3 ap = abs(np);
+    int mip = int(-log2(max(max(ap.x, ap.y), ap.z)));
+    return max(min(mip - 1, grid_mips - 1), 0);
+}
 
 float sample_grid( vec3 p ) {
-    // return texture(grid_texture , p * float(grid_res - 1) / float(grid_res)).r;
-    return texture(grid_texture , p).r;
-    // return texelFetch(grid_texture, ivec3(round(p * float(grid_res - 1))), 0).r;
+    int mip = mip_from_pos(p);
+    vec3 sp = (p - 0.5) * exp2(float(mip)) + 0.5;
+    switch(mip){
+        case 0:
+            return texture(grid_textures[0], sp).r;
+        case 1:
+            return texture(grid_textures[1], sp).r;
+        case 2:
+            return texture(grid_textures[2], sp).r;
+        case 3:
+            return texture(grid_textures[3], sp).r;
+        case 4:
+            return texture(grid_textures[4], sp).r;
+    }
 }
 vec3 sigmoid(vec3 v){
     return 1.0 / (1.0 + exp(-v));
@@ -218,12 +236,16 @@ void main(){
     vec3 rgb = vec3(0.0, 0.0, 0.0);
     float acc_trans = 1.0;
     float t = bounds.x;
-    int iter_count = 0;
-    while(t < bounds.y && iter_count < MAX_ITERS){
+    float iter_count = 0.0;
+    float max_it = float(MAX_ITERS);
+    while(t < bounds.y && iter_count < max_it){
         p = vOrigin + rayDir * t;
+        int mip = mip_from_pos(p);
+        // float scale = max(1.0 / exp2(float(mip)), 0.125);
+        float scale = 1.0 / exp2(float(mip));
         float grid = sample_grid(p);
         if (grid < grid_th){
-            t = t + grid_step_size;
+            t = t + grid_step_size * scale;
             continue;
         // } else {
         //     gl_FragColor = vec4(0.0, t, 0.0, 1.0);
@@ -231,7 +253,7 @@ void main(){
         }
         
         // at this point, we have hit something in grid.
-        vec4 rgba = query(p, rayDir, t, sh_feats, grid_step_size);
+        vec4 rgba = query(p, rayDir, t, sh_feats, non_grid_step_size);
         float alpha = rgba.a;
         float weight = alpha * acc_trans;
         rgb += weight * rgba.rgb;
@@ -240,8 +262,8 @@ void main(){
         if (acc_trans < 0.01) {
             break;
         }
-        t = t + non_grid_step_size;
-        iter_count += 1;
+        t = t + non_grid_step_size * scale;
+        iter_count += 1.0 * scale;
     }
 
     gl_FragColor = vec4(rgb, 1.0 - acc_trans);
