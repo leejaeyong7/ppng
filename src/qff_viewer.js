@@ -41,7 +41,7 @@ export default class QFFViewer extends HTMLElement{
         this.fov = 45;
         this.aspect = this.width / this.height;
         this.near = 0.01;
-        this.far = 5;
+        this.far = 20;
 
         const src = this.getAttribute('src');
 
@@ -60,6 +60,7 @@ export default class QFFViewer extends HTMLElement{
         const render_max = Math.max(this.width, this.height);
         const screen_max = 800;
         let render_width = null;
+        let render_height = null;
         if(render_aspect > 1){
             render_width = Math.min(render_max, screen_max);
             render_height = render_width / render_aspect;
