@@ -41,6 +41,7 @@ uniform float min_alpha;
 
 const int MAX_ITERS = 128;
 const int MAX_NUM_FREQS = 4;
+const float PI = 3.14159265359;
 const float TWO_PI = 6.28318530718;
 
 const float ITSPI = 1.0 / (2.0 * 1.77245385);
@@ -168,9 +169,9 @@ vec4 query( vec3 p, vec3 dir, float t, vec4[4] sh_feats, float dt) {
     vec4 feats[8] = vec4[8](z, z, z, z, z, z, z, z);
 
     for (int fid = 0; fid < num_freqs; fid++){
-        float f = freqs[fid];
-        vec3 sp = (sin(mod(f * p, TWO_PI)) * float(num_quants - 1) / float(num_quants)) / 2.0 + 0.50;
-        vec3 cp = (cos(mod(f * p, TWO_PI)) * float(num_quants - 1) / float(num_quants)) / 2.0 + 0.50;
+        float f = freqs[fid] * PI;
+        vec3 sp = (sin(mod(f * (p - 0.5), TWO_PI)) * float(num_quants - 1) / float(num_quants)) / 2.0 + 0.50;
+        vec3 cp = (cos(mod(f * (p - 0.5), TWO_PI)) * float(num_quants - 1) / float(num_quants)) / 2.0 + 0.50;
 
         switch(fid){
             case 0:
