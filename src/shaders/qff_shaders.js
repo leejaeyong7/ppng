@@ -231,7 +231,7 @@ void main(){
     vec3 p = vOrigin + bounds.x * rayDir;
     vec3 inc = 1.0 / abs( rayDir );
 
-    float grid_step_size = render_step * 4.0;
+    float grid_step_size = render_step * min(float(grid_mips), 4.0);
     float non_grid_step_size = render_step;
 
     vec3 rgb = vec3(0.0, 0.0, 0.0);
@@ -249,7 +249,7 @@ void main(){
             t = t + grid_step_size * scale;
             continue;
         // } else {
-        //     gl_FragColor = vec4(0.0, t, 0.0, 1.0);
+        //     gl_FragColor = vec4(0.0, t - 0.3, 0.0, 1.0);
         //     return;
         }
         

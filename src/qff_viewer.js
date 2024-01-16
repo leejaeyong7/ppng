@@ -43,8 +43,6 @@ export default class QFFViewer extends HTMLElement{
         this.near = 0.01;
         this.far = 20;
 
-        const src = this.getAttribute('src');
-
         // 
         const self = this;
         this.renderer = new THREE.WebGLRenderer( { antialias: false} );
@@ -91,15 +89,21 @@ export default class QFFViewer extends HTMLElement{
         }
         animate();
 
-        this.loadPromise = fetch(src);
-        this.loadPromise.then(async (response) => {
-            const buf = await response.arrayBuffer();
-            const qffMesh = await this.onBufferLoad(buf);
-            this.scene.add(qffMesh)
-            this.should_render = true;
-        }).catch((error) => {
-            console.error(error)
-        });
+        if(this.hasAttribute('src')){
+          this.loadURL(this.src);
+        }
+    }
+
+    async loadURL(url){
+      this.loadPromise = fetch(url);
+      this.loadPromise.then(async (response) => {
+          const buf = await response.arrayBuffer();
+          const qffMesh = await this.onBufferLoad(buf);
+          this.scene.add(qffMesh)
+          this.should_render = true;
+      }).catch((error) => {
+          console.error(error)
+      });
     }
 
 
@@ -115,6 +119,9 @@ export default class QFFViewer extends HTMLElement{
         const cam_rot = new THREE.Quaternion();
         const cam_s = new THREE.Vector3();
         pose_mat.decompose(cam_pos, cam_rot, cam_s)
+        if(this.up){
+          up = this.up;
+        }
         let upv = new THREE.Vector3(up[0], up[1], up[2]);
 
 
@@ -124,6 +131,7 @@ export default class QFFViewer extends HTMLElement{
         if (this.controls){
             this.controls.dispose();
         }
+        this.camera.up.copy(upv);
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         const self = this;
         this.controls.addEventListener('change', function(event){ self.should_render = true; })
@@ -206,7 +214,6 @@ export default class QFFViewer extends HTMLElement{
         const grids = rles.map((rle, i)=>{
             return gridFromRLE(G, rle, grid_th + 1)
         });
-        console.log(aabb_scale)
         this.load_pose(initial_pose, up, aabb_scale);
 
         // setup QFF mesh
@@ -222,6 +229,12 @@ export default class QFFViewer extends HTMLElement{
         if(this.renderer && this.camera){
             this.onResize();
         }
+    }
+    get src(){
+        return this.getAttribute('src') || '';
+    }
+    set src(val){
+        this.setAttribute('src', val);
     }
     get height(){
         return this.getAttribute('height') || 1;
@@ -239,32 +252,26 @@ export default class QFFViewer extends HTMLElement{
     get width(){
         return this.getAttribute('width') || 1;
     }
+
+    get up(){
+      const upstr = this.getAttribute('up');
+      return upstr ? upstr.split(',').map(v=>parseFloat(v)) : null;
+    }
     setAttribute(name, val){
         super.setAttribute(name, val);
         switch(name){
+            case 'src': 
+                this.loadURL(this.src);
+                break;
             case 'width': 
-                this.width = val;
                 this.onResize();
                 break;
             case 'height': 
-                this.height = val;
                 this.onResize();
                 break;
-            case 'fov':
-                this.camera.fov = this.fov;
-                this.onResize();
-                break;
-            case 'aspect':
-                this.camera.aspect = this.aspect;
-                this.onResize();
-                break;
-            case 'near':
-                this.camera.near = this.near;
-                this.onResize();
-                break;
-            case 'far':
-                this.camera.far = this.far;
-                this.onResize();
+            case 'up':
+                console.log('setting up')
+                this.setCameraUp();
                 break;
         }
 
@@ -288,6 +295,15 @@ export default class QFFViewer extends HTMLElement{
         this.camera.far = this.far;
         this.camera.updateProjectionMatrix()
         this.flush();
+    }
+    setCameraUp(){
+      console.log('setting camera up')
+      // const up = this.getAttribute('up');
+      // this.camera.up.set(up[0], up[1], up[2]);
+      // this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+      // const self = this;
+      // this.controls.addEventListener('change', function(event){ self.should_render = true; })
+      // this.flush();
     }
 }
 window.THREE = THREE;
