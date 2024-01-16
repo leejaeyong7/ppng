@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite App</title>
+  </head>
+  <body>
+    <qff-viewer id="test" width="400" height="400"></qff-viewer>
+    <script type="module" src="/main.js"></script>
+    <script>
+      // load the viewer based on query string. If not, load the default viewer (/data/debug.qff)
+      const urlParams = new URLSearchParams(window.location.search);
+      const src = urlParams.get('src', '/data/debug.qff');
+      const qff = document.getElementById('test');
+      qff.setAttribute('src', src);
+    </script>
+  </body>
+</html>
