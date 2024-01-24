@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import {qff1Toqff3} from './shaders/qff1_to_qff3.js';
-import {qff2Toqff3} from './shaders/qff2_to_qff3.js';
-import {gridFromqff3} from './shaders/grid_from_qff3.js';
-import QFFMesh from './qff_mesh.js';
+import {ppng1Toppng3} from './shaders/ppng1_to_ppng3.js';
+import {ppng2Toppng3} from './shaders/ppng2_to_ppng3.js';
+import {gridFromppng3} from './shaders/grid_from_ppng3.js';
+import PPNGMesh from './ppng_mesh.js';
 import * as cbor from 'cbor-web';
 import { Float16Array, getFloat16, setFloat16 } from '@petamoriken/float16';
 
@@ -33,7 +33,7 @@ function gridFromRLE(G, rle, val){
 }
 
 
-export default class QFFViewer extends HTMLElement{
+export default class PPNGViewer extends HTMLElement{
     constructor(){
         super({antialias: false})
         this.should_render = true;
@@ -98,8 +98,8 @@ export default class QFFViewer extends HTMLElement{
       this.loadPromise = fetch(url);
       this.loadPromise.then(async (response) => {
           const buf = await response.arrayBuffer();
-          const qffMesh = await this.onBufferLoad(buf);
-          this.scene.add(qffMesh)
+          const ppngMesh = await this.onBufferLoad(buf);
+          this.scene.add(ppngMesh)
           this.should_render = true;
       }).catch((error) => {
           console.error(error)
@@ -155,7 +155,7 @@ export default class QFFViewer extends HTMLElement{
             return arrBuf;
         }
         const data = await cbor.decodeFirst(buffer);
-        const qff_buffer= new Uint16Array(loadCBORBuffer(data['qff_buffer']))
+        const ppng_buffer= new Uint16Array(loadCBORBuffer(data['ppng_buffer']))
         const freqs = data['freqs'];
         const F = data['n_freqs'];
         // const G = 256;//data['grid_res'];
@@ -163,7 +163,7 @@ export default class QFFViewer extends HTMLElement{
         const C = data['n_feats'];
         const Q = data['n_quants'];
         const R = data['rank'];
-        const qff_type = data['qff_type']
+        const ppng_type = data['ppng_type']
         const render_step = data['render_step'];
         const grid_th = -Math.log(1 - 0.01) / render_step;
         const up = data['up'];
@@ -176,37 +176,37 @@ export default class QFFViewer extends HTMLElement{
           return;
         }
         const color_channels = data['n_color_layers'];
-        const qff_raw_density_layer = new Float32Array(loadCBORBuffer(data[`qff_density_layer_0`]));
-        const qff_raw_color_layers = Array.from({length: color_channels.length}, (v, i) => new Float32Array(loadCBORBuffer(data[`qff_color_layer_${i}`])));
-        const qff_density_layer = Array.from({length: qff_raw_density_layer.length / 16}, (v, i) => qff_raw_density_layer.slice(i*16, (i+1)*16));
-        const qff_color_layers = qff_raw_color_layers.map(qff_raw_color_layer=>Array.from({length: qff_raw_color_layer.length / 16}, (v, i) => qff_raw_color_layer.slice(i*16, (i+1)*16)));
+        const ppng_raw_density_layer = new Float32Array(loadCBORBuffer(data[`ppng_density_layer_0`]));
+        const ppng_raw_color_layers = Array.from({length: color_channels.length}, (v, i) => new Float32Array(loadCBORBuffer(data[`ppng_color_layer_${i}`])));
+        const ppng_density_layer = Array.from({length: ppng_raw_density_layer.length / 16}, (v, i) => ppng_raw_density_layer.slice(i*16, (i+1)*16));
+        const ppng_color_layers = ppng_raw_color_layers.map(ppng_raw_color_layer=>Array.from({length: ppng_raw_color_layer.length / 16}, (v, i) => ppng_raw_color_layer.slice(i*16, (i+1)*16)));
 
-        let qff3_buffer = null;
-        switch(qff_type){
+        let ppng3_buffer = null;
+        switch(ppng_type){
           case 1:
-            const qff_1_chunk_size = F*2*Q*R*C;
-            const qff_x = qff_buffer.slice(0*qff_1_chunk_size, 1*qff_1_chunk_size)
-            const qff_y = qff_buffer.slice(1*qff_1_chunk_size, 2*qff_1_chunk_size)
-            const qff_z = qff_buffer.slice(2*qff_1_chunk_size, 3*qff_1_chunk_size)
+            const ppng_1_chunk_size = F*2*Q*R*C;
+            const ppng_x = ppng_buffer.slice(0*ppng_1_chunk_size, 1*ppng_1_chunk_size)
+            const ppng_y = ppng_buffer.slice(1*ppng_1_chunk_size, 2*ppng_1_chunk_size)
+            const ppng_z = ppng_buffer.slice(2*ppng_1_chunk_size, 3*ppng_1_chunk_size)
 
-            // decompress to qff3
-            qff3_buffer = qff1Toqff3(F, Q, R, [qff_x, qff_y, qff_z]);
+            // decompress to ppng3
+            ppng3_buffer = ppng1Toppng3(F, Q, R, [ppng_x, ppng_y, ppng_z]);
           break;
           case 2:
-            const qff_2_chunk_size = F*2*Q*Q*R*C;
-            const qff_yz = qff_buffer.slice(0*qff_2_chunk_size, 1*qff_2_chunk_size)
-            const qff_xz = qff_buffer.slice(1*qff_2_chunk_size, 2*qff_2_chunk_size)
-            const qff_xy = qff_buffer.slice(2*qff_2_chunk_size, 3*qff_2_chunk_size)
+            const ppng_2_chunk_size = F*2*Q*Q*R*C;
+            const ppng_yz = ppng_buffer.slice(0*ppng_2_chunk_size, 1*ppng_2_chunk_size)
+            const ppng_xz = ppng_buffer.slice(1*ppng_2_chunk_size, 2*ppng_2_chunk_size)
+            const ppng_xy = ppng_buffer.slice(2*ppng_2_chunk_size, 3*ppng_2_chunk_size)
 
-            // decompress to qff3
-            qff3_buffer = qff2Toqff3(F, Q, R, [qff_yz, qff_xz, qff_xy]);
+            // decompress to ppng3
+            ppng3_buffer = ppng2Toppng3(F, Q, R, [ppng_yz, ppng_xz, ppng_xy]);
             break;
           case 3:
-            qff3_buffer = qff_buffer;
+            ppng3_buffer = ppng_buffer;
             break;
 
         }
-        const qff3_buffers = Array.from({length: F*2}, (v, i) => qff3_buffer.slice(i*Q*Q*Q*4, (i+1)*Q*Q*Q*4));  
+        const ppng3_buffers = Array.from({length: F*2}, (v, i) => ppng3_buffer.slice(i*Q*Q*Q*4, (i+1)*Q*Q*Q*4));  
         // if(has_rle && false){
         const rles = data['grid_rles']
         const mips = rles.length;
@@ -216,8 +216,8 @@ export default class QFFViewer extends HTMLElement{
         });
         this.load_pose(initial_pose, up, aabb_scale);
 
-        // setup QFF mesh
-        return new QFFMesh(F, Q, G, freqs, qff3_buffers, grids, qff_density_layer, qff_color_layers, grid_th, aabb_scale, 0.01, render_step);
+        // setup PPNG mesh
+        return new PPNGMesh(F, Q, G, freqs, ppng3_buffers, grids, ppng_density_layer, ppng_color_layers, grid_th, aabb_scale, 0.01, render_step);
     }
 
     set height(val){
@@ -308,4 +308,4 @@ export default class QFFViewer extends HTMLElement{
 }
 window.THREE = THREE;
 
-customElements.define('qff-viewer', QFFViewer)
+customElements.define('ppng-viewer', PPNGViewer)

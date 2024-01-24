@@ -1,2 +1,2 @@
 import './style.css'
-import QFFViewer from './src/qff_viewer.js'
+import PPNGViewer from './src/ppng_viewer.js'

@@ -2,7 +2,7 @@ import { resolve } from 'path'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  base: '/eqff/',
+  // base: '/ppng/',
   // omit
   server: {
     watch: {
@@ -13,7 +13,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        qff: resolve(__dirname, 'qff.html'),
+        ppng: resolve(__dirname, 'ppng.html'),
         blended_mvs_1: resolve(__dirname, 'presets', 'blended_mvs_1.html'),
         blended_mvs_2: resolve(__dirname, 'presets', 'blended_mvs_2.html'),
         blended_mvs_3: resolve(__dirname, 'presets', 'blended_mvs_3.html'),

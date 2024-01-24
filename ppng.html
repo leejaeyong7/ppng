@@ -3,22 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>QFF Viewer</title>
+    <title>ppng Viewer</title>
   </head>
   <body style="display:block; text-align: center;">
-    <qff-viewer id="viewer" width="600" height="600" style="margin: auto;"></qff-viewer>
+    <ppng-viewer id="viewer" width="800" height="800" style="margin: auto;"></ppng-viewer>
     <script type="module" src="/main.js"></script>
     <script>
-      const qff_viewer = document.getElementById('viewer');
+      const ppng_viewer = document.getElementById('viewer');
       const queryString = window.location.search;
       const urlParams = new URLSearchParams(queryString);
-      let qff_src = null;
+      let ppng_src = null;
       if(urlParams.has('src')){
-        qff_src = urlParams.get('src')
+        ppng_src = urlParams.get('src')
       }
       window.viewer = viewer;
-      window.qff_src = qff_src;
-      viewer.setAttribute('src', qff_src);
+      window.ppng_src = ppng_src;
+      viewer.setAttribute('src', ppng_src);
 
       if(urlParams.has('up')){
         up_dir = urlParams.get('up').split(',').map(x => parseFloat(x));

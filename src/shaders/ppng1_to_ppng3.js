@@ -1,8 +1,8 @@
 import {gpgpu} from './gpgpu.js'
-const qffVoxelShader = `#version 300 es
+const ppngVoxelShader = `#version 300 es
 precision highp float;
 
-// QFF size parameters
+// PPNG size parameters
 uniform int Q;
 uniform int R;
 uniform int F;
@@ -10,9 +10,9 @@ uniform int F;
 // indexing parameters
 uniform int voxelSize;
 
-uniform sampler2D qff1x;
-uniform sampler2D qff1y;
-uniform sampler2D qff1z;
+uniform sampler2D ppng1x;
+uniform sampler2D ppng1y;
+uniform sampler2D ppng1z;
 
 const int canvasMaxWidth = 16384;
 
@@ -36,9 +36,9 @@ void main() {
         int qxi = fi * Q*R + xi * R + r;
         int qyi = fi * Q*R + yi * R + r;
         int qzi = fi * Q*R + zi * R + r;
-        vec4 qxv = texelFetch(qff1x, ivec2(qxi, 0), 0);
-        vec4 qyv = texelFetch(qff1y, ivec2(qyi, 0), 0);
-        vec4 qzv = texelFetch(qff1z, ivec2(qzi, 0), 0);
+        vec4 qxv = texelFetch(ppng1x, ivec2(qxi, 0), 0);
+        vec4 qyv = texelFetch(ppng1y, ivec2(qyi, 0), 0);
+        vec4 qzv = texelFetch(ppng1z, ivec2(qzi, 0), 0);
 
         outColor += (qxv * qyv * qzv);
     }
@@ -46,7 +46,7 @@ void main() {
 `;
 
 
-export function qff1Toqff3(F, Q, R, qff1){
+export function ppng1Toppng3(F, Q, R, ppng1){
   const voxelSize = F*2*Q*Q*Q;
   const outType = 'float16';
   const uniforms = {
@@ -54,10 +54,10 @@ export function qff1Toqff3(F, Q, R, qff1){
     'R': {type: 'int', value: R},
     'F': {type: 'int', value: F},
     'voxelSize': {type: 'int', value: voxelSize},
-    'qff1x': {type: 'sampler2D', value: qff1[0], options: {width: F*2*Q*R, height: 1, sampling:'nearest'}},
-    'qff1y': {type: 'sampler2D', value: qff1[1], options: {width: F*2*Q*R, height: 1, sampling:'nearest'}},
-    'qff1z': {type: 'sampler2D', value: qff1[2], options: {width: F*2*Q*R, height: 1, sampling:'nearest'}},
+    'ppng1x': {type: 'sampler2D', value: ppng1[0], options: {width: F*2*Q*R, height: 1, sampling:'nearest'}},
+    'ppng1y': {type: 'sampler2D', value: ppng1[1], options: {width: F*2*Q*R, height: 1, sampling:'nearest'}},
+    'ppng1z': {type: 'sampler2D', value: ppng1[2], options: {width: F*2*Q*R, height: 1, sampling:'nearest'}},
   };
-  const qff3 = gpgpu(voxelSize, outType, uniforms, qffVoxelShader)
-  return qff3;
+  const ppng3 = gpgpu(voxelSize, outType, uniforms, ppngVoxelShader)
+  return ppng3;
 }

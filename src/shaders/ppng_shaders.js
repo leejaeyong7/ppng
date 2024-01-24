@@ -1,4 +1,4 @@
-export const qffVertShader = `
+export const ppngVertShader = `
 precision highp float;
 varying vec3 vOrigin;
 varying vec3 vDirection;
@@ -12,7 +12,7 @@ void main() {
 }
 `
 
-export const qffFragShader = `
+export const ppngFragShader = `
 precision highp float;
 precision highp int;
 precision highp sampler3D;
@@ -23,7 +23,7 @@ uniform mat4 projectionMatrix;
 
 uniform sampler3D[5] grid_textures;
 
-uniform sampler3D[8] qff_textures;
+uniform sampler3D[8] ppng_textures;
 uniform float grid_th;
 uniform int grid_mips;
 
@@ -72,12 +72,12 @@ vec2 hitBox( vec3 orig, vec3 dir ) {
     return vec2( t0, t1 );
 }
 
-vec4[4] density_layer_0(vec4[8] qff_values){
+vec4[4] density_layer_0(vec4[8] ppng_values){
     vec4[4] out_vecs = vec4[4] (z, z, z, z);
 
     for( int fid = 0; fid < num_freqs * 2; fid++){
         for (int oid = 0; oid < 4; oid++){
-            out_vecs[oid] += density_weight_0[fid * 4 + oid] * qff_values[fid];
+            out_vecs[oid] += density_weight_0[fid * 4 + oid] * ppng_values[fid];
         }
     }
     return out_vecs;
@@ -175,20 +175,20 @@ vec4 query( vec3 p, vec3 dir, float t, vec4[4] sh_feats, float dt) {
 
         switch(fid){
             case 0:
-                feats[0] = texture(qff_textures[0], sp);
-                feats[1] = texture(qff_textures[1], cp);
+                feats[0] = texture(ppng_textures[0], sp);
+                feats[1] = texture(ppng_textures[1], cp);
                 break;
             case 1:
-                feats[2] = texture(qff_textures[2], sp);
-                feats[3] = texture(qff_textures[3], cp);
+                feats[2] = texture(ppng_textures[2], sp);
+                feats[3] = texture(ppng_textures[3], cp);
                 break;
             case 2:
-                feats[4] = texture(qff_textures[4], sp);
-                feats[5] = texture(qff_textures[5], cp);
+                feats[4] = texture(ppng_textures[4], sp);
+                feats[5] = texture(ppng_textures[5], cp);
                 break;
             case 3:
-                feats[6] = texture(qff_textures[6], sp);
-                feats[7] = texture(qff_textures[7], cp);
+                feats[6] = texture(ppng_textures[6], sp);
+                feats[7] = texture(ppng_textures[7], cp);
                 break;
         }
     }
@@ -248,9 +248,6 @@ void main(){
         if (grid < grid_th){
             t = t + grid_step_size * scale;
             continue;
-        // } else {
-        //     gl_FragColor = vec4(0.0, t - 0.3, 0.0, 1.0);
-        //     return;
         }
         
         // at this point, we have hit something in grid.

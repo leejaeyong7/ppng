@@ -1,18 +1,18 @@
 import * as THREE from 'three';
-import {qffVertShader, qffFragShader} from './shaders/qff_shaders.js';
+import {ppngVertShader, ppngFragShader} from './shaders/ppng_shaders.js';
 
 
-export default class QFFMesh extends THREE.Object3D{
-    constructor(F, Q, G, freqs, qff_textures_data, grids_texture_data, density_layer_data, rgb_layers_data, grid_th, aabb_scale, min_alpha, render_step){
+export default class PPNGMesh extends THREE.Object3D{
+    constructor(F, Q, G, freqs, ppng_textures_data, grids_texture_data, density_layer_data, rgb_layers_data, grid_th, aabb_scale, min_alpha, render_step){
         super();
-        const qff_textures = qff_textures_data.map(qff_texture_data =>{
-            const qff_texture = new THREE.Data3DTexture(qff_texture_data, Q, Q, Q);
-            qff_texture.format = THREE.RGBAFormat;
-            qff_texture.type = THREE.HalfFloatType;
-            qff_texture.minFilter = qff_texture.magFilter = THREE.LinearFilter;
-            qff_texture.unpackAlignment = 1;
-            qff_texture.needsUpdate = true;
-            return qff_texture;
+        const ppng_textures = ppng_textures_data.map(ppng_texture_data =>{
+            const ppng_texture = new THREE.Data3DTexture(ppng_texture_data, Q, Q, Q);
+            ppng_texture.format = THREE.RGBAFormat;
+            ppng_texture.type = THREE.HalfFloatType;
+            ppng_texture.minFilter = ppng_texture.magFilter = THREE.LinearFilter;
+            ppng_texture.unpackAlignment = 1;
+            ppng_texture.needsUpdate = true;
+            return ppng_texture;
         })
         const grid_textures = grids_texture_data.map(grid_texture_data =>{
             const grid_texture = new THREE.Data3DTexture(grid_texture_data, G, G, G);
@@ -30,12 +30,12 @@ export default class QFFMesh extends THREE.Object3D{
         const rgb_layers = rgb_layers_data.map(rgb_data=>rgb_data.map(arr =>{
             return new THREE.Matrix4().fromArray(arr).transpose();
         }));
-        console.log(render_step)
+        console.log(grid_textures.length)
 
         const uniforms = {
             'num_freqs': {value: F},
             'num_quants': {value: Q},
-            'qff_textures': {value: qff_textures},
+            'ppng_textures': {value: ppng_textures},
             'grid_textures': {value: grid_textures.reverse()},
             'grid_res': {value: G},
             'grid_th': {value: grid_th},
@@ -52,8 +52,8 @@ export default class QFFMesh extends THREE.Object3D{
         const geom = new THREE.BoxGeometry(1, 1, 1);
         const material = new THREE.ShaderMaterial({
             uniforms: uniforms,
-            vertexShader: qffVertShader,
-            fragmentShader: qffFragShader,
+            vertexShader: ppngVertShader,
+            fragmentShader: ppngFragShader,
             side: THREE.BackSide,
         });
 

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>eQFF Demo</title>
+    <title>PPNG Demo</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css">
     <link href="./index.css" rel="stylesheet">
@@ -12,7 +12,7 @@
     <div id="main" class="container">
       <!-- title -->
       <div class="row">
-        <h2 class="col-md-12 text-center"><b>eQFF</b>: Efficient Quantized Fourier Features for Real-time Neural Fields<br> for Economic Real-Time Rendering</h2>
+        <h2 class="col-md-12 text-center"><b>Plenoptic PNG</b>: Real-time Neural Radiance Fields in 150KB</h2>
       </div>
       <!-- Venue -->
       <div class="row">
@@ -35,9 +35,11 @@
         <div class="col-md-8 offset-md-2">
           <h3>Abstract</h3>
           <p>
-            We present efficient Quantized Fourier Features (eQFF), an efficient real-time photorealistic 3D rendering on lightweight devices. 
-            eQFF addresses the challenge of balancing computational efficiency, minimal memory usage, and high-quality photorealism, a task where traditional methods like Neural Radiance Fields (NeRF) fall short. 
-            Our model is unique in its decomposability, spatially hashing, and render-friendly architecture, allowing it to operate in sizes as compact as hundreds of Kilobytes. Unlike existing methods, eQFF does not require an additional baking process, can render in real-time on mobile devices using WebGL, and has a tiny memory footprint.
+            The goal of Plenoptic PNG~(PPNG) is to encode a 3D scene into an <it>extremely compact</it> representation from 2D images and to enable its transmittance, decoding and rendering in real-time across various platforms.
+            Despite the progress in NeRFs and Gaussian Splats, their large model size and specialized renderers make it challenging to distribute free-viewpoint 3D content as easily as images. 
+            To address this, we have designed a novel 3D representation that encodes the plenoptic function into sinusoidal function indexed dense volumes. This approach facilitates feature sharing across different locations, improving compactness over traditional spatial voxels. 
+            The memory footprint of the dense 3D feature grid can be further reduced using spatial decomposition techniques. This design combines the strengths of spatial hashing functions and voxel decomposition, resulting in a model size as small as 150 KB for each 3D scene. 
+            Moreover, PPNG features a lightweight rendering pipeline with only 300 lines of code that decodes its representation into standard GL textures and fragment shaders. This enables real-time rendering using the traditional GL pipeline, ensuring universal compatibility and efficiency across various platforms without additional dependencies.
           </p>
         </div>
       </div>
@@ -45,17 +47,18 @@
       <div class="row">
         <h3 class="col-md-8 offset-md-2">Training</h3>
         <p class="col-md-8 offset-md-2">
-          Training eQFF models can be done with a CUDA capable devices. We implemented eQFF 1, 2 and 3 on <a href="https://github.com/NVlabs/tiny-cuda-nn">tiny-cuda-nn</a>, and ported on <a href="https://github.com/NVlabs/instant-ngp">Instant-NGP</a> platform.
-          Typically, the training takes around up to 1 minute (QFF-3) to 10 minutes (QFF-1) to complete.
-          We provide code to translate trained model weights (.ingp files) into customized format (.qff files). The translation takes less than few hundred miliseconds to complete. 
+          Training PPNG models can be done with a CUDA capable devices. 
+          We implemented PPNG 1, 2 and 3 on <a href="https://github.com/NVlabs/tiny-cuda-nn">tiny-cuda-nn</a>, and ported on <a href="https://github.com/NVlabs/instant-ngp">Instant-NGP</a> platform.
+          Typically, the training takes around up to 5 minute (PPNG-3) to 13 minutes (PPNG-1) to complete.
+          We provide code to translate trained model weights (.ingp files) into customized format (.ppng files). The translation is does not require huge computation and is done near instantly. 
         </p>
         <h3 class="col-md-8 offset-md-2">Usage</h3>
         <p class="col-md-8 offset-md-2">
-          Once trained and translated, eQFF can be easily integrated to browsers supporting <a href="https://get.webgl.org/webgl2/">WebGL 2</a>. 
-          All Demo pages are implemented based on the custom component <code>qff-viewer</code> that can be used as follows:
+          Once trained and translated, PPNG can be easily integrated to browsers supporting <a href="https://get.webgl.org/webgl2/">WebGL 2</a>. 
+          All Demo pages are implemented based on the custom component <code>ppng-viewer</code> that can be used as follows:
         </p>
         <div class="col-md-8 offset-md-2">
-          <pre><code class="language-html"> &lt;qff-viewer src="/path_to_qff_file.qff" width="400" height="400" &gt;&lt;/qff-viewer&gt;</code></pre>
+          <pre><code class="language-html"> &lt;ppng-viewer src="/path_to_ppng_file.ppng" width="400" height="400" &gt;&lt;/ppng-viewer&gt;</code></pre>
         </div>
       </div>
       <!-- Demo -->
@@ -64,21 +67,31 @@
         <div class="col-md-8 offset-md-2">
           <h3>Real-Time Demo</h3>
           <p>
-            We provide real-time demo of eQFF on various datasets. For each page, we have 3 different models with different quality and performance trade-offs.
-            Q1 represents QFF-1, our lightest, CP-decmposed version of QFF-3 (with 128KB model size). 
-            Q2 represents QFF-2, an intermediate, tri-plane decomposed version of QFF-3 (with 2.46 MB model size). 
-            Q3 represents original QFF-3 without any decomposition (with 32.8 MB model size).
-            Each model has RLE encoded occupancy grid cache which are around 50~150 KB for object datasets and 400~500 KB for 360 datasets. 
+            We provide real-time demo of PPNG on various datasets. For each page, we have 3 different models with different quality and performance trade-offs.
+          </p>
+          <ul>
+            <li>
+              P1 represents PPNG-1, our lightest, CP-decmposed version of PPNG-3 (with 128KB model size). 
+            </li>
+            <li>
+            P2 represents PPNG-2, an intermediate, tri-plane decomposed version of PPNG-3 (with 2.46 MB model size). 
+            </li>
+            <li>
+            P3 represents original PPNG-3 without any decomposition (with 32.8 MB model size).
+            </li>
+          </ul>
+          <p>
+            Each model has RLE encoded occupancy grid cache which are around 15~100 KB for object datasets and 400~500 KB for 360 datasets. 
             <br>
-            <u>(Note that Q3 is not available for NeRFSynthetic due to size limits in github pages.)</u>
+            <u>(Note that P3 is not available for Synthetic NSVF due to size limits in github pages.)</u>
           </p>
           <p>
             To demonstrate our efficiency, we provide 2 different ways to load the model.
-            All Objects loads all objects in the dataset at the same time. It will load 4 to 8 objects simultaneously depending on the dataset. 
+            <b>All Objects</b> section loads all objects in the dataset at the same time. It will load 4 to 8 objects simultaneously depending on the dataset. 
             <br>
-            <u>(Warning! This may take a while to load for Q3!)</u>
+            <u>(Warning! This may take a while to load for P3!)</u>
             <br>
-            Single Object loads single object in each dataset with larger render size.
+            <b>Single Object</b> section loads single object in each dataset with larger render size.
           </p>
         </div>
       </div>
@@ -88,13 +101,14 @@
             Loads all objects in the dataset at the same time!
           </div>
           <figure class="figure col-md-2 offset-md-2">
-            <img src="/preview/NeRFSynthetic.jpg" alt="" class="figure-img img-fluid rounded">
+            <!-- hack for vite. use base-pointer to get the base url -->
+            <img id="base-pointer" src="/preview/NeRFSynthetic.jpg" alt="" class="figure-img img-fluid rounded">
             <figcaption>
               Synthetic NeRF
               <br>
-              <a href="presets/nerf_1.html"><small>Q1</small></a>
-              <a href="presets/nerf_2.html"><small>Q2</small></a>
-              <a href="#" style="color: gray;" data-bs-toggle="tooltip" data-bs-title="Disabled due to size limits!"><small>Q3</small></a>
+              <a href="presets/nerf_1.html"><small>P1</small></a>
+              <a href="presets/nerf_2.html"><small>P2</small></a>
+              <a href="#" style="color: gray;" data-bs-toggle="tooltip" data-bs-title="Disabled due to size limits!"><small>P3</small></a>
             </figcaption>
           </figure>
           <figure class="figure col-md-2">
@@ -102,9 +116,9 @@
             <figcaption>
               Synthetic NSVF
               <br>
-              <a href="presets/nsvf_1.html"><small>Q1</small></a>
-              <a href="presets/nsvf_2.html"><small>Q2</small></a>
-              <a href="presets/nsvf_3.html"><small>Q3</small></a>
+              <a href="presets/nsvf_1.html"><small>P1</small></a>
+              <a href="presets/nsvf_2.html"><small>P2</small></a>
+              <a href="presets/nsvf_3.html"><small>P3</small></a>
             </figcaption>
           </figure>
           <figure class="figure col-md-2">
@@ -112,9 +126,9 @@
             <figcaption>
               Blended MVS
               <br>
-              <a href="presets/blended_mvs_1.html"><small>Q1</small></a>
-              <a href="presets/blended_mvs_2.html"><small>Q2</small></a>
-              <a href="presets/blended_mvs_3.html"><small>Q3</small></a>
+              <a href="presets/blended_mvs_1.html"><small>P1</small></a>
+              <a href="presets/blended_mvs_2.html"><small>P2</small></a>
+              <a href="presets/blended_mvs_3.html"><small>P3</small></a>
             </figcaption>
           </figure>
           <figure class="figure col-md-2">
@@ -122,9 +136,9 @@
             <figcaption>
               Tanks and Temples
               <br>
-              <a href="presets/tnt_1.html"><small>Q1</small></a>
-              <a href="presets/tnt_2.html"><small>Q2</small></a>
-              <a href="presets/tnt_3.html"><small>Q3</small></a>
+              <a href="presets/tnt_1.html"><small>P1</small></a>
+              <a href="presets/tnt_2.html"><small>P2</small></a>
+              <a href="presets/tnt_3.html"><small>P3</small></a>
             </figcaption>
           </figure>
           <figure class="figure col-md-2 offset-md-2">
@@ -132,9 +146,9 @@
             <figcaption>
               MIPNeRF 360
               <br>
-              <a href="presets/mipnerf_1.html"><small>Q1</small></a>
-              <a href="presets/mipnerf_2.html"><small>Q2</small></a>
-              <a href="presets/mipnerf_3.html"><small>Q3</small></a>
+              <a href="presets/mipnerf_1.html"><small>P1</small></a>
+              <a href="presets/mipnerf_2.html"><small>P2</small></a>
+              <a href="presets/mipnerf_3.html"><small>P3</small></a>
             </figcaption>
           </figure>
       </div>
@@ -144,7 +158,8 @@
           Loads single object with larger render size.
         </div>
       </div>
-      <div id="qff-objects" class="row">
+      
+      <div id="ppng-objects" class="row">
 
       </div>
       <!-- TODO: Citation -->
@@ -163,112 +178,6 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
-    <script>
-      const scenes = {
-        'NeRFSynthetic': {
-          name: 'Synthetic NeRF',
-          scenes: {
-            chair: null,
-            drums: null,
-            ficus: null,
-            hotdog: null,
-            lego: null,
-            materials: null,
-            mic: null,
-            ship: null,
-          }
-        },
-        'Synthetic_NSVF': {
-          name: 'Synthetic NSVF',
-          scenes: {
-            Bike: null,
-            Lifestyle: null,
-            Palace: null,
-            Robot: null,
-            Spaceship: null,
-            Steamtrain: null,
-            Toad: null,
-            Wineholder: null,
-          }
-        },
-        'BlendedMVS': {
-          name: 'Blended MVS',
-          scenes: {
-            Character: [0, 1, 0],
-            Fountain: [0, -1, 0],
-            Jade: null,
-            Statues: [0, 1, 0]
-          }
-        },
-        'TanksAndTemple': {
-          name: 'Tanks and Temples',
-          scenes: {
-            Barn: null,
-            Caterpillar: null,
-            Family: null,
-            Ignatius: null,
-            Truck: null
-          }
-        },
-        '360_v2': {
-          name: 'MIPNeRF 360',
-          scenes: {
-            bicycle: null,
-            bonsai: null,
-            counter: null,
-            garden: null,
-            kitchen: null,
-            room: null,
-            treehill: null,
-            stump: null,
-            flowers: null,
-          }
-        }
-      }
-      const createCard = (dataset, scene, up, index) => {
-        const figure = document.createElement('figure');
-        if(index % 8 === 0) {
-          figure.classList.add('figure', 'col-md-1', 'offset-md-2');
-        } else {
-          figure.classList.add('figure', 'col-md-1');
-        }
-
-        const img = document.createElement('img');
-        img.src = `/preview/${dataset}/${scene}.jpg`;
-        img.classList.add('figure-img', 'img-fluid', 'rounded');
-        figure.appendChild(img);
-
-        const figcaption = document.createElement('figcaption');
-        let figcaptionText = `<span style="text-transform: capitalize;">${scene}</span>`;
-        figcaptionText += `<br>`;
-
-        const getQffUrl = (qtype, up) => up ? `qff.html?src=/data/${dataset}/qff_${qtype}/${scene}.qff&up=${up}`:`qff.html?src=/data/${dataset}/qff_${qtype}/${scene}.qff`
-        figcaptionText += `<a href="${getQffUrl(1, up)}"><small>Q1</small></a>\n`;
-        figcaptionText += `<a href="${getQffUrl(2, up)}"><small>Q2</small></a>\n`;
-        if(dataset != 'NeRFSynthetic'){
-          figcaptionText += `<a href="${getQffUrl(3, up)}"><small>Q3</small></a>`;
-        } else {
-          figcaptionText += `<a href="#" style="color: gray;" data-bs-toggle="tooltip" data-bs-title="Disabled due to size limits!"><small>Q3</small></a>`;
-        }
-        figcaption.innerHTML = figcaptionText;
-        figure.appendChild(figcaption);
-        return figure;
-      };
-      const qffObjectRoot = document.getElementById('qff-objects');
-      Object.entries(scenes).forEach(([dataset, {name, scenes}]) => {
-        const h5 = document.createElement('h5');
-        h5.classList.add('col-md-8', 'offset-md-2');
-        h5.style.marginTop = '30px';
-        h5.innerText = name;
-        qffObjectRoot.appendChild(h5);
-        Object.entries(scenes).forEach(([scene, up], index) => {
-          const figure = createCard(dataset, scene, up, index);
-          qffObjectRoot.appendChild(figure);
-        })
-      });
-
-      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
-      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
-    </script>
+    <script type="module" src="./entry_page.js"></script>
   </body>
 </html>
