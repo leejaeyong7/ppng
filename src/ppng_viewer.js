@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {ppng1Toppng3} from './shaders/ppng1_to_ppng3.js';
 import {ppng2Toppng3} from './shaders/ppng2_to_ppng3.js';
-import {gridFromppng3} from './shaders/grid_from_ppng3.js';
 import PPNGMesh from './ppng_mesh.js';
 import * as cbor from 'cbor-web';
 import { Float16Array, getFloat16, setFloat16 } from '@petamoriken/float16';
@@ -155,7 +154,7 @@ export default class PPNGViewer extends HTMLElement{
             return arrBuf;
         }
         const data = await cbor.decodeFirst(buffer);
-        const ppng_buffer= new Uint16Array(loadCBORBuffer(data['ppng_buffer']))
+        const ppng_buffer= new Uint16Array(loadCBORBuffer(data['qff_buffer']))
         const freqs = data['freqs'];
         const F = data['n_freqs'];
         // const G = 256;//data['grid_res'];
@@ -163,7 +162,7 @@ export default class PPNGViewer extends HTMLElement{
         const C = data['n_feats'];
         const Q = data['n_quants'];
         const R = data['rank'];
-        const ppng_type = data['ppng_type']
+        const ppng_type = data['qff_type']
         const render_step = data['render_step'];
         const grid_th = -Math.log(1 - 0.01) / render_step;
         const up = data['up'];
@@ -176,8 +175,8 @@ export default class PPNGViewer extends HTMLElement{
           return;
         }
         const color_channels = data['n_color_layers'];
-        const ppng_raw_density_layer = new Float32Array(loadCBORBuffer(data[`ppng_density_layer_0`]));
-        const ppng_raw_color_layers = Array.from({length: color_channels.length}, (v, i) => new Float32Array(loadCBORBuffer(data[`ppng_color_layer_${i}`])));
+        const ppng_raw_density_layer = new Float32Array(loadCBORBuffer(data[`qff_density_layer_0`]));
+        const ppng_raw_color_layers = Array.from({length: color_channels.length}, (v, i) => new Float32Array(loadCBORBuffer(data[`qff_color_layer_${i}`])));
         const ppng_density_layer = Array.from({length: ppng_raw_density_layer.length / 16}, (v, i) => ppng_raw_density_layer.slice(i*16, (i+1)*16));
         const ppng_color_layers = ppng_raw_color_layers.map(ppng_raw_color_layer=>Array.from({length: ppng_raw_color_layer.length / 16}, (v, i) => ppng_raw_color_layer.slice(i*16, (i+1)*16)));
 

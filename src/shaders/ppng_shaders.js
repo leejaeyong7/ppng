@@ -145,8 +145,7 @@ int mip_from_pos(vec3 p){
     return max(min(mip - 1, grid_mips - 1), 0);
 }
 
-float sample_grid( vec3 p ) {
-    int mip = mip_from_pos(p);
+float sample_grid( int mip, vec3 p ) {
     vec3 sp = (p - 0.5) * exp2(float(mip)) + 0.5;
     switch(mip){
         case 0:
@@ -229,41 +228,50 @@ void main(){
     
     bounds.x = max( bounds.x, 0.0 );
     vec3 p = vOrigin + bounds.x * rayDir;
+    vec3 next_p = p;
     vec3 inc = 1.0 / abs( rayDir );
-
-    float grid_step_size = render_step * min(float(grid_mips), 4.0);
-    float non_grid_step_size = render_step;
 
     vec3 rgb = vec3(0.0, 0.0, 0.0);
     float acc_trans = 1.0;
     float t = bounds.x;
     float iter_count = 0.0;
     float max_it = float(MAX_ITERS);
+
+    // value calculated from iNGP paper
+    float grid_step_size = S3 / 256.0;
+
     while(t < bounds.y && iter_count < max_it){
         p = vOrigin + rayDir * t;
         int mip = mip_from_pos(p);
-        // float scale = max(1.0 / exp2(float(mip)), 0.125);
         float scale = 1.0 / exp2(float(mip));
-        float grid = sample_grid(p);
+        next_p = vOrigin + rayDir * (t + grid_step_size * scale);
+
+        float grid = sample_grid(mip, next_p);
         if (grid < grid_th){
-            t = t + grid_step_size * scale;
+            t = t + (grid_step_size * scale);
             continue;
         }
-        
-        // at this point, we have hit something in grid.
-        vec4 rgba = query(p, rayDir, t, sh_feats, non_grid_step_size);
-        float alpha = rgba.a;
-        float weight = alpha * acc_trans;
-        rgb += weight * rgba.rgb;
-        acc_trans *= (1.0 - alpha);
 
-        if (acc_trans < 0.01) {
-            break;
+        // if we hit the grid, we need to do non-grid stepping
+        float dt = 0.0;
+        while(dt < (grid_step_size * scale)){
+            p = vOrigin + rayDir * (t + dt);
+            // at this point, we have hit something in grid.
+            vec4 rgba = query(p, rayDir, t, sh_feats, render_step);
+            float alpha = rgba.a;
+            float weight = alpha * acc_trans;
+            rgb += weight * rgba.rgb;
+            acc_trans *= (1.0 - alpha);
+
+            if (acc_trans < 0.01) {
+                gl_FragColor = vec4(rgb, 1.0 - acc_trans);
+                return;
+            }
+            dt = dt + render_step * scale;
+            iter_count += scale;
         }
-        t = t + non_grid_step_size * scale;
-        iter_count += 1.0 * scale;
+        t = t + dt;
     }
-
     gl_FragColor = vec4(rgb, 1.0 - acc_trans);
 }
 `
