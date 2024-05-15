@@ -24,6 +24,17 @@
         up_dir = urlParams.get('up').split(',').map(x => parseFloat(x));
         viewer.setAttribute('up', up_dir);
       }
+      let size = 800;
+      if(urlParams.has('size')){
+        const url_size = urlParams.get('size');
+        try{
+          size = parseInt(url_size);
+        }catch(e){
+          console.log('invalid size')
+        }
+        viewer.render_width = size;
+        viewer.render_height = size;
+      }
     </script>
   </body>
 </html>

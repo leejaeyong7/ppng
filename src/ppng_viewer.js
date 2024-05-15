@@ -45,27 +45,20 @@ export default class PPNGViewer extends HTMLElement{
         // 
         const self = this;
         this.renderer = new THREE.WebGLRenderer( { antialias: false} );
+
+        // set DOM size (controlled with width / height)
+        // set canvas size (controlled with render_width / render_height)
         if(this.style.width == ''){
             this.style.width = `${this.width}px`;
         }
         if(this.style.height == ''){
             this.style.height = `${this.height}px`;
         }
-        // this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setPixelRatio(1);
         const render_aspect = this.width / this.height;
         const render_max = Math.max(this.width, this.height);
-        const screen_max = 800;
-        let render_width = null;
-        let render_height = null;
-        if(render_aspect > 1){
-            render_width = Math.min(render_max, screen_max);
-            render_height = render_width / render_aspect;
-        } else {
-            render_height = Math.min(render_max, screen_max);
-            render_width = render_height * render_aspect;
-        }
-        this.renderer.setSize(render_width, render_height, false);
+        this.screen_max = 800;
+        this.renderer.setSize(this.render_width, this.render_height, false);
         this.renderer.domElement.style.width = `100%`;
         this.renderer.domElement.style.height = `100%`;
         this.appendChild(this.renderer.domElement);
@@ -219,6 +212,12 @@ export default class PPNGViewer extends HTMLElement{
         return new PPNGMesh(F, Q, G, freqs, ppng3_buffers, grids, ppng_density_layer, ppng_color_layers, grid_th, aabb_scale, 0.01, render_step);
     }
 
+    get src(){
+        return this.getAttribute('src') || '';
+    }
+    set src(val){
+        this.setAttribute('src', val);
+    }
     set height(val){
         if(val){
             this.setAttribute('height', val);
@@ -228,12 +227,6 @@ export default class PPNGViewer extends HTMLElement{
         if(this.renderer && this.camera){
             this.onResize();
         }
-    }
-    get src(){
-        return this.getAttribute('src') || '';
-    }
-    set src(val){
-        this.setAttribute('src', val);
     }
     get height(){
         return this.getAttribute('height') || 1;
@@ -251,6 +244,32 @@ export default class PPNGViewer extends HTMLElement{
     get width(){
         return this.getAttribute('width') || 1;
     }
+    set render_height(val){
+        if(val){
+            this.setAttribute('render_height', val);
+        } else {
+            this.removeAttribute('render_height')
+        }
+        if(this.renderer && this.camera){
+            this.onResize();
+        }
+    }
+    get render_height(){
+        return this.getAttribute('render_height') || this.getAttribute('height') || 1;
+    }
+    set render_width(val){
+        if(val){
+            this.setAttribute('render_width', val);
+        } else {
+            this.removeAttribute('render_width')
+        }
+        if(this.renderer && this.camera){
+            this.onResize();
+        }
+    }
+    get render_width(){
+        return this.getAttribute('render_width') || this.getAttribute('width') || 1;
+    }
 
     get up(){
       const upstr = this.getAttribute('up');
@@ -266,6 +285,12 @@ export default class PPNGViewer extends HTMLElement{
                 this.onResize();
                 break;
             case 'height': 
+                this.onResize();
+                break;
+            case 'render_width': 
+                this.onResize();
+                break;
+            case 'render_height': 
                 this.onResize();
                 break;
             case 'up':
@@ -287,7 +312,14 @@ export default class PPNGViewer extends HTMLElement{
     }
 
     onResize(){
-        this.renderer.setSize(this.width, this.height, false);
+        if(this.style.width == ''){
+            this.style.width = `${this.width}px`;
+        }
+        if(this.style.height == ''){
+            this.style.height = `${this.height}px`;
+        }
+        console.log(this.render_width)
+        this.renderer.setSize(this.render_width, this.render_height, false);
         this.camera.fov = this.fov;
         this.camera.aspect = this.aspect; 
         this.camera.near = this.near;
