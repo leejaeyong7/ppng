@@ -1,7 +1,6 @@
 const basePointer = document.getElementById('base-pointer');
 let baseURL = basePointer.src;
 baseURL = baseURL.replace('preview/NeRFSynthetic.jpg', '')
-console.log(baseURL)
 const scenes = {
   'NeRFSynthetic': {
     name: 'Synthetic NeRF',
