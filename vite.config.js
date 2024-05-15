@@ -10,7 +10,6 @@ export default defineConfig({
     }
   },
   build: {
-    outputDir: "https://ppng.github.io/ppng/",
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
