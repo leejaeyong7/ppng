@@ -80,12 +80,16 @@ const createCard = (dataset, scene, up, index) => {
   figcaptionText += `<br>`;
 
   const getPPNGUrl = (qtype, up) => up ? `ppng.html?src=${baseURL}/data/${dataset}/ppng_${qtype}/${scene}.ppng&up=${up}&size=600`:`ppng.html?src=${baseURL}data/${dataset}/ppng_${qtype}/${scene}.ppng&size=600`
-  figcaptionText += `<a href="${getPPNGUrl(1, up)}"><small>P1</small></a>\n`;
-  figcaptionText += `<a href="${getPPNGUrl(2, up)}"><small>P2</small></a>\n`;
-  if(dataset == '360_v2'){
-    figcaptionText += `<a href="${getPPNGUrl(3, up)}"><small>P3</small></a>`;
-  } else {
-    figcaptionText += `<a href="#" style="color: gray;" data-bs-toggle="tooltip" data-bs-title="Disabled due to size limits!"><small>P3</small></a>`;
+  if (dataset == '360_v2' & ((scene == 'flowers') || (scene == 'treehill'))) {
+    figcaptionText += `N/A (licensing)`;
+  } else{
+    figcaptionText += `<a href="${getPPNGUrl(1, up)}"><small>P1</small></a>\n`;
+    figcaptionText += `<a href="${getPPNGUrl(2, up)}"><small>P2</small></a>\n`;
+    if(dataset == 'NeRFSynthetic'){
+      figcaptionText += `<a href="${getPPNGUrl(3, up)}"><small>P3</small></a>`;
+    } else {
+      figcaptionText += `<a href="#" style="color: gray;" data-bs-toggle="tooltip" data-bs-title="Disabled due to size limits!"><small>P3</small></a>`;
+    }
   }
   figcaption.innerHTML = figcaptionText;
   figure.appendChild(figcaption);
