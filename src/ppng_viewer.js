@@ -147,7 +147,7 @@ export default class PPNGViewer extends HTMLElement{
             return arrBuf;
         }
         const data = await cbor.decodeFirst(buffer);
-        const ppng_buffer= new Uint16Array(loadCBORBuffer(data['qff_buffer']))
+        const ppng_buffer= new Uint16Array(loadCBORBuffer(data['ppng_buffer']))
         const freqs = data['freqs'];
         const F = data['n_freqs'];
         // const G = 256;//data['grid_res'];
@@ -155,7 +155,7 @@ export default class PPNGViewer extends HTMLElement{
         const C = data['n_feats'];
         const Q = data['n_quants'];
         const R = data['rank'];
-        const ppng_type = data['qff_type']
+        const ppng_type = data['ppng_type']
         const render_step = data['render_step'];
         const grid_th = -Math.log(1 - 0.01) / render_step;
         const up = data['up'];
@@ -168,8 +168,8 @@ export default class PPNGViewer extends HTMLElement{
           return;
         }
         const color_channels = data['n_color_layers'];
-        const ppng_raw_density_layer = new Float32Array(loadCBORBuffer(data[`qff_density_layer_0`]));
-        const ppng_raw_color_layers = Array.from({length: color_channels.length}, (v, i) => new Float32Array(loadCBORBuffer(data[`qff_color_layer_${i}`])));
+        const ppng_raw_density_layer = new Float32Array(loadCBORBuffer(data[`ppng_density_layer_0`]));
+        const ppng_raw_color_layers = Array.from({length: color_channels.length}, (v, i) => new Float32Array(loadCBORBuffer(data[`ppng_color_layer_${i}`])));
         const ppng_density_layer = Array.from({length: ppng_raw_density_layer.length / 16}, (v, i) => ppng_raw_density_layer.slice(i*16, (i+1)*16));
         const ppng_color_layers = ppng_raw_color_layers.map(ppng_raw_color_layer=>Array.from({length: ppng_raw_color_layer.length / 16}, (v, i) => ppng_raw_color_layer.slice(i*16, (i+1)*16)));
 
@@ -294,7 +294,6 @@ export default class PPNGViewer extends HTMLElement{
                 this.onResize();
                 break;
             case 'up':
-                console.log('setting up')
                 this.setCameraUp();
                 break;
         }
@@ -318,7 +317,6 @@ export default class PPNGViewer extends HTMLElement{
         if(this.style.height == ''){
             this.style.height = `${this.height}px`;
         }
-        console.log(this.render_width)
         this.renderer.setSize(this.render_width, this.render_height, false);
         this.camera.fov = this.fov;
         this.camera.aspect = this.aspect; 
@@ -328,13 +326,12 @@ export default class PPNGViewer extends HTMLElement{
         this.flush();
     }
     setCameraUp(){
-      console.log('setting camera up')
-      // const up = this.getAttribute('up');
-      // this.camera.up.set(up[0], up[1], up[2]);
-      // this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-      // const self = this;
-      // this.controls.addEventListener('change', function(event){ self.should_render = true; })
-      // this.flush();
+      const up = this.getAttribute('up');
+      this.camera.up.set(up[0], up[1], up[2]);
+      this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+      const self = this;
+      this.controls.addEventListener('change', function(event){ self.should_render = true; })
+      this.flush();
     }
 }
 window.THREE = THREE;

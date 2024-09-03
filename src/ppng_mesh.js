@@ -30,7 +30,6 @@ export default class PPNGMesh extends THREE.Object3D{
         const rgb_layers = rgb_layers_data.map(rgb_data=>rgb_data.map(arr =>{
             return new THREE.Matrix4().fromArray(arr).transpose();
         }));
-        console.log(grid_textures.length)
 
         const uniforms = {
             'num_freqs': {value: F},
