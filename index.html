@@ -7,7 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css">
     
-    <script type="module" crossorigin src="/ppng/assets/main-f69fd39b.js"></script>
+    <script type="module" crossorigin src="/ppng/assets/main-bc090053.js"></script>
     <link rel="modulepreload" crossorigin href="/ppng/assets/modulepreload-polyfill-3cfb730f.js">
     <link rel="stylesheet" href="/ppng/assets/index-dcf8f4b2.css">
   </head>
@@ -24,11 +24,25 @@
       <!-- Authors -->
       <div class="row">
         <h6 class="col-md-12 text-center">
-          Anonymous Authors
+          <span><a href="https://jyl.kr">Jae Yong Lee</a></span><sup>1*</sup>, 
+          <span><a href="https://yuqunw.github.io/">Yuqun Wu</a></span><sup>2</sup>, 
+          <span><a href="https://zouchuhang.github.io/">Chuhang Zou</a></span><sup>3</sup>, 
+          <span><a href="https://dhoiem.cs.illinois.edu/">Derek Hoiem</a></span><sup>2</sup>, 
+          <span><a href="https://shenlong.web.illinois.edu/">Shenlong Wang</a></span><sup>2</sup>, 
         </h6>
       </div>
       <!-- TODO: Affiliations -->
-      <div class="row">
+      <div class="row text-center">
+        <h8 class="col-md-12 text-center">
+          <sup>1</sup>Apple Inc.  
+          <span style="padding-left:10px;"></span>
+          <sup>2</sup>UIUC  
+          <span style="padding-left:10px;"></span>
+          <sup>3</sup>Amazon Inc.  
+        </h8>
+        <h8 class="col-md-12 text-center">
+          <sup>*</sup>Work done while at UIUC
+        </h8>
       </div>
       <!-- Links -->
       <div class="row">
@@ -38,7 +52,7 @@
         <div class="col-md-8 offset-md-2">
           <h3>Abstract</h3>
           <p>
-            The goal of Plenoptic PNG~(PPNG) is to encode a 3D scene into an <it>extremely compact</it> representation from 2D images and to enable its transmittance, decoding and rendering in real-time across various platforms.
+            The goal of Plenoptic PNG (PPNG) is to encode a 3D scene into an <it>extremely compact</it> representation from 2D images and to enable its transmittance, decoding and rendering in real-time across various platforms.
             Despite the progress in NeRFs and Gaussian Splats, their large model size and specialized renderers make it challenging to distribute free-viewpoint 3D content as easily as images. 
             To address this, we have designed a novel 3D representation that encodes the plenoptic function into sinusoidal function indexed dense volumes. This approach facilitates feature sharing across different locations, improving compactness over traditional spatial voxels. 
             The memory footprint of the dense 3D feature grid can be further reduced using spatial decomposition techniques. This design combines the strengths of spatial hashing functions and voxel decomposition, resulting in a model size as small as 150 KB for each 3D scene. 
@@ -51,7 +65,7 @@
         <h3 class="col-md-8 offset-md-2">Training</h3>
         <p class="col-md-8 offset-md-2">
           Training PPNG models can be done with a CUDA capable devices. 
-          We implemented PPNG 1, 2 and 3 on <a href="https://github.com/NVlabs/tiny-cuda-nn">tiny-cuda-nn</a>, and ported on <a href="https://github.com/NVlabs/instant-ngp">Instant-NGP</a> platform.
+          We implemented PPNG 1, 2 and 3 on <a href="https://github.com/leejaeyong7/tiny-cuda-nn">tiny-cuda-nn</a>, and ported on <a href="https://github.com/leejaeyong7/instant-ngp">Instant-NGP</a> platform.
           Typically, the training takes around up to 5 minute (PPNG-3) to 13 minutes (PPNG-1) to complete.
           We provide code to translate trained model weights (.ingp files) into customized format (.ppng files). The translation is does not require huge computation and is done near instantly. 
         </p>
@@ -122,8 +136,7 @@
               <br>
               <a href="presets/nsvf_1.html"><small>P1</small></a>
               <a href="presets/nsvf_2.html"><small>P2</small></a>
-              <!-- <a href="presets/nsvf_3.html"><small>P3</small></a> -->
-              <a href="#" style="color: gray;" data-bs-toggle="tooltip" data-bs-title="Disabled due to size limits!"><small>P3</small></a>
+              <a href="presets/nsvf_3.html"><small>P3</small></a>
             </figcaption>
           </figure>
           <figure class="figure col-md-2">
@@ -144,8 +157,7 @@
               <br>
               <a href="presets/tnt_1.html"><small>P1</small></a>
               <a href="presets/tnt_2.html"><small>P2</small></a>
-              <!-- <a href="presets/tnt_3.html"><small>P3</small></a> -->
-              <a href="#" style="color: gray;" data-bs-toggle="tooltip" data-bs-title="Disabled due to size limits!"><small>P3</small></a>
+              <a href="presets/tnt_3.html"><small>P3</small></a>
             </figcaption>
           </figure>
           <figure class="figure col-md-2 offset-md-2">
@@ -155,8 +167,7 @@
               <br>
               <a href="presets/mipnerf_1.html"><small>P1</small></a>
               <a href="presets/mipnerf_2.html"><small>P2</small></a>
-              <!-- <a href="presets/mipnerf_3.html"><small>P3</small></a> -->
-              <a href="#" style="color: gray;" data-bs-toggle="tooltip" data-bs-title="Disabled due to size limits!"><small>P3</small></a>
+              <a href="presets/mipnerf_3.html"><small>P3</small></a>
             </figcaption>
           </figure>
       </div>
