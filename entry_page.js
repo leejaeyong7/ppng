@@ -85,10 +85,10 @@ const createCard = (dataset, scene, up, index) => {
   } else{
     figcaptionText += `<a href="${getPPNGUrl(1, up)}"><small>P1</small></a>\n`;
     figcaptionText += `<a href="${getPPNGUrl(2, up)}"><small>P2</small></a>\n`;
-    if(dataset == 'NeRFSynthetic'){
-      figcaptionText += `<a href="${getPPNGUrl(3, up)}"><small>P3</small></a>`;
-    } else {
+    if(dataset == 'BlendedMVS'){
       figcaptionText += `<a href="#" style="color: gray;" data-bs-toggle="tooltip" data-bs-title="Disabled due to size limits!"><small>P3</small></a>`;
+    } else {
+      figcaptionText += `<a href="${getPPNGUrl(3, up)}"><small>P3</small></a>`;
     }
   }
   figcaption.innerHTML = figcaptionText;
