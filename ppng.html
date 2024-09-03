@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ppng Viewer</title>
+    <script type="module" crossorigin src="/ppng/assets/modulepreload-polyfill-3cfb730f.js"></script>
+    <script type="module" crossorigin src="/ppng/assets/main-2c3ed5b1.js"></script>
+    <link rel="stylesheet" href="/ppng/assets/main-4ec296e7.css">
+  </head>
+  <body style="display:block; text-align: center;">
+    <ppng-viewer id="viewer" width="800" height="800" style="margin: auto;"></ppng-viewer>
+    
+    <script>
+      const ppng_viewer = document.getElementById('viewer');
+      const queryString = window.location.search;
+      const urlParams = new URLSearchParams(queryString);
+      let ppng_src = null;
+      if(urlParams.has('src')){
+        ppng_src = urlParams.get('src')
+      }
+      window.viewer = viewer;
+      window.ppng_src = ppng_src;
+      viewer.setAttribute('src', ppng_src);
+
+      if(urlParams.has('up')){
+        up_dir = urlParams.get('up').split(',').map(x => parseFloat(x));
+        viewer.setAttribute('up', up_dir);
+      }
+      let size = 800;
+      if(urlParams.has('size')){
+        const url_size = urlParams.get('size');
+        try{
+          size = parseInt(url_size);
+        }catch(e){
+          console.log('invalid size')
+        }
+        viewer.render_width = size;
+        viewer.render_height = size;
+      }
+    </script>
+  </body>
+</html>
