@@ -15,7 +15,7 @@ Please visit https://jyl.kr/ppng for the demo with the pretrained scenes.
 
 # Citation
 If you like our work, 
-```
+```bibtex
 @misc{lee2024ppng,
       title={Plenoptic PNG: Real-Time Neural Radiance Fields in 150 KB}, 
       author={Jae Yong Lee and Yuqun Wu and Chuhang Zou and Derek Hoiem and Shenlong Wang},
