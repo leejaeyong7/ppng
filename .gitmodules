@@ -1,0 +1,6 @@
+[submodule "submodules/ppng-trainer"]
+	path = submodules/ppng-trainer
+	url = https://github.com/leejaeyong7/instant-ngp
+[submodule "submodules/ppng-viewer"]
+	path = submodules/ppng-viewer
+	url = https://github.com/leejaeyong7/ppng-viewer
