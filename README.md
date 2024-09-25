@@ -14,7 +14,7 @@ Please refer to the [viewer repository](https://github.com/leejaeyong7/ppng-view
 Please visit https://jyl.kr/ppng for the demo with the pretrained scenes. 
 
 # Citation
-If you like our work, 
+If you like our work, please cite:
 ```bibtex
 @misc{lee2024ppng,
       title={Plenoptic PNG: Real-Time Neural Radiance Fields in 150 KB}, 
